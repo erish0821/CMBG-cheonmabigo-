@@ -22,6 +22,7 @@ import {
   AnalyticsIcon,
 } from '../../src/components/ui/Icon';
 import { useRouter } from 'expo-router';
+import { useAuthStore } from '../../src/stores/authStore';
 
 interface SettingItem {
   title: string;
@@ -34,9 +35,68 @@ interface SettingItem {
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { user, logout, isLoading } = useAuthStore();
   const [pushNotifications, setPushNotifications] = useState(true);
   const [biometricAuth, setBiometricAuth] = useState(false);
   const [dataSync, setDataSync] = useState(true);
+
+  // 로그아웃 핸들러
+  const handleLogout = async () => {
+    // 웹 환경에서는 confirm 사용
+    if (typeof window !== 'undefined') {
+      const result = confirm('정말 로그아웃하시겠습니까?');
+      if (!result) return;
+    } else {
+      // 모바일에서는 Alert 사용
+      Alert.alert(
+        '로그아웃',
+        '정말 로그아웃하시겠습니까?',
+        [
+          { text: '취소', style: 'cancel' },
+          {
+            text: '로그아웃',
+            style: 'destructive',
+            onPress: async () => {
+              await performLogout();
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    await performLogout();
+  };
+
+  const performLogout = async () => {
+    try {
+      await logout();
+      // 루트로 리다이렉트 (app/index.tsx에서 웰컴 화면으로 보냄)
+      router.replace('/');
+    } catch (error) {
+      console.error('로그아웃 오류:', error);
+      if (typeof window !== 'undefined') {
+        alert('로그아웃 중 문제가 발생했습니다.');
+      } else {
+        Alert.alert('오류', '로그아웃 중 문제가 발생했습니다.');
+      }
+    }
+  };
+
+  // 사용자 이름과 이메일 가져오기
+  const getUserDisplayName = () => {
+    if (!user) return '사용자';
+    return user.name || user.email?.split('@')[0] || '사용자';
+  };
+
+  const getUserEmail = () => {
+    return user?.email || 'email@example.com';
+  };
+
+  const getUserInitial = () => {
+    const name = getUserDisplayName();
+    return name.charAt(0).toUpperCase();
+  };
 
   const accountSettings: SettingItem[] = [
     {
@@ -44,7 +104,7 @@ export default function SettingsScreen() {
       description: '개인정보 및 프로필 설정',
       type: 'navigation',
       onPress: () => {
-        Alert.alert('프로필 관리', '프로필 설정 화면으로 이동합니다.');
+        router.push('/settings/profile');
       },
     },
     {
@@ -52,7 +112,7 @@ export default function SettingsScreen() {
       description: '월간 예산 및 카테고리별 한도 설정',
       type: 'navigation',
       onPress: () => {
-        Alert.alert('예산 설정', '예산 설정 화면으로 이동합니다.');
+        router.push('/settings/budget');
       },
     },
     {
@@ -60,7 +120,7 @@ export default function SettingsScreen() {
       description: '지출 카테고리 추가 및 수정',
       type: 'navigation',
       onPress: () => {
-        Alert.alert('카테고리 관리', '카테고리 관리 화면으로 이동합니다.');
+        router.push('/settings/categories');
       },
     },
   ];
@@ -95,7 +155,7 @@ export default function SettingsScreen() {
       description: '앱 사용법 및 FAQ',
       type: 'navigation',
       onPress: () => {
-        Alert.alert('도움말', '도움말 화면으로 이동합니다.');
+        router.push('/settings/help');
       },
     },
     {
@@ -103,7 +163,7 @@ export default function SettingsScreen() {
       description: '개발팀에 문의 및 피드백',
       type: 'navigation',
       onPress: () => {
-        Alert.alert('문의하기', '문의 화면으로 이동합니다.');
+        router.push('/settings/contact');
       },
     },
     {
@@ -111,7 +171,7 @@ export default function SettingsScreen() {
       description: '버전 정보 및 라이선스',
       type: 'navigation',
       onPress: () => {
-        Alert.alert('앱 정보', '천마비고 v1.0.0\\n\\n© 2024 천마비고 팀');
+        router.push('/settings/about');
       },
     },
   ];
@@ -159,18 +219,18 @@ export default function SettingsScreen() {
           <View className="items-center py-4">
             <View className="mb-3 h-20 w-20 items-center justify-center rounded-full bg-primary-100">
               <BodyText className="text-2xl font-bold text-primary-600">
-                김
+                {getUserInitial()}
               </BodyText>
             </View>
-            <H2 className="mb-1">김천마님</H2>
-            <Caption className="text-gray-600">kim.cheonma@example.com</Caption>
+            <H2 className="mb-1">{getUserDisplayName()}님</H2>
+            <Caption className="text-gray-600">{getUserEmail()}</Caption>
             <Button
               title="프로필 수정"
               variant="outline"
               size="sm"
               className="mt-3"
               onPress={() => {
-                Alert.alert('프로필 수정', '프로필 수정 화면으로 이동합니다.');
+                router.push('/settings/profile');
               }}
             />
           </View>
@@ -200,29 +260,10 @@ export default function SettingsScreen() {
         <H2 className="mb-4">데이터 관리</H2>
         <Card className="mb-3">
           <Button
-            title="데이터 내보내기"
+            title="데이터 관리"
             variant="outline"
             onPress={() => {
-              Alert.alert(
-                '데이터 내보내기',
-                '거래 내역을 CSV 파일로 내보냅니다.'
-              );
-            }}
-          />
-        </Card>
-        <Card className="mb-3">
-          <Button
-            title="데이터 초기화"
-            variant="outline"
-            onPress={() => {
-              Alert.alert(
-                '데이터 초기화',
-                '모든 거래 내역이 삭제됩니다. 정말 초기화하시겠습니까?',
-                [
-                  { text: '취소', style: 'cancel' },
-                  { text: '초기화', style: 'destructive' },
-                ]
-              );
+              router.push('/settings/data');
             }}
           />
         </Card>
@@ -232,14 +273,10 @@ export default function SettingsScreen() {
       <SectionContainer>
         <Card>
           <Button
-            title="로그아웃"
+            title={isLoading ? "로그아웃 중..." : "로그아웃"}
             variant="outline"
-            onPress={() => {
-              Alert.alert('로그아웃', '정말 로그아웃하시겠습니까?', [
-                { text: '취소', style: 'cancel' },
-                { text: '로그아웃', style: 'destructive' },
-              ]);
-            }}
+            disabled={isLoading}
+            onPress={handleLogout}
           />
         </Card>
       </SectionContainer>

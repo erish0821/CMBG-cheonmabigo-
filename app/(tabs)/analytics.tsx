@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, ScrollView, TouchableOpacity, RefreshControl, Text } from 'react-native';
 import {
   Screen,
   Container,
@@ -21,11 +21,22 @@ import {
   ChatIcon,
   SettingsIcon,
 } from '../../src/components/ui/Icon';
+import { AnalyticsService, AnalyticsData } from '../../src/services/analytics/AnalyticsService';
+import {
+  SpendingTrendChart,
+  CategoryPieChart,
+  WeeklyPatternChart,
+  BudgetProgressChart,
+  InsightCard,
+} from '../../src/components/charts';
+import { useRouter } from 'expo-router';
 
 export default function AnalyticsScreen() {
-  const [selectedPeriod, setSelectedPeriod] = useState<
-    'week' | 'month' | 'year'
-  >('month');
+  const router = useRouter();
+  const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('month');
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const periods = [
     { key: 'week' as const, label: '주간' },
@@ -33,34 +44,80 @@ export default function AnalyticsScreen() {
     { key: 'year' as const, label: '연간' },
   ];
 
-  const categoryData = [
-    { name: '식비', amount: 450000, percentage: 36, color: '#ef4444' },
-    { name: '교통비', amount: 180000, percentage: 14, color: '#f59e0b' },
-    { name: '카페', amount: 120000, percentage: 10, color: '#10b981' },
-    { name: '쇼핑', amount: 300000, percentage: 24, color: '#8b5cf6' },
-    { name: '기타', amount: 195000, percentage: 16, color: '#6b7280' },
-  ];
+  // 데이터 로드 함수
+  const loadAnalyticsData = async (forceRefresh = false) => {
+    try {
+      const data = await AnalyticsService.getAnalyticsData(forceRefresh);
+      setAnalyticsData(data);
+    } catch (error) {
+      console.error('분석 데이터 로드 실패:', error);
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
+    }
+  };
 
-  const insights = [
-    {
-      title: '식비 지출 증가',
-      description: '지난달 대비 15% 증가했어요',
-      type: 'warning' as const,
-      action: '절약 팁 보기',
-    },
-    {
-      title: '교통비 절약 성공',
-      description: '대중교통 이용으로 20% 절약했어요',
-      type: 'success' as const,
-      action: '계속 유지하기',
-    },
-    {
-      title: '저축 목표 달성 가능',
-      description: '현재 패턴으로 목표 달성 예상돼요',
-      type: 'info' as const,
-      action: '목표 조정하기',
-    },
-  ];
+  // 새로고침 핸들러
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadAnalyticsData(true);
+  };
+
+  // 초기 데이터 로드
+  useEffect(() => {
+    loadAnalyticsData();
+  }, []);
+
+  // 로딩 상태
+  if (isLoading) {
+    return (
+      <Screen
+        title="분석 중..."
+        subtitle="데이터를 분석하고 있습니다"
+        safeArea={true}
+        scrollable={true}
+      >
+        <SectionContainer>
+          <Card className="p-8">
+            <View className="items-center">
+              <BodyText>재정 데이터를 분석하고 있습니다...</BodyText>
+            </View>
+          </Card>
+        </SectionContainer>
+      </Screen>
+    );
+  }
+
+  // 데이터가 없는 경우
+  if (!analyticsData) {
+    return (
+      <Screen
+        title="분석 데이터 없음"
+        subtitle="거래 내역을 먼저 기록해주세요"
+        safeArea={true}
+        scrollable={true}
+      >
+        <SectionContainer>
+          <Card className="p-8">
+            <View className="items-center space-y-4">
+              <H3>분석할 데이터가 없습니다</H3>
+              <BodyText className="text-center text-secondary-600">
+                AI 코치와 대화하며 거래를 기록하면{'\n'}
+                상세한 분석 결과를 확인할 수 있습니다.
+              </BodyText>
+              <Button
+                title="거래 기록하러 가기"
+                variant="primary"
+                onPress={() => router.push('/chat')}
+              />
+            </View>
+          </Card>
+        </SectionContainer>
+      </Screen>
+    );
+  }
+
+  const { summary, monthlyTrends, weeklyPatterns, budgetAnalysis, insights, categoryTrends } = analyticsData;
 
   return (
     <Screen
@@ -69,168 +126,177 @@ export default function AnalyticsScreen() {
       safeArea={true}
       scrollable={true}
     >
-      {/* 기간 선택 */}
-      <SectionContainer>
-        <View className="mb-4 flex-row space-x-2">
-          {periods.map(period => (
-            <TouchableOpacity
-              key={period.key}
-              className={`flex-1 rounded-lg px-4 py-3 ${
-                selectedPeriod === period.key ? 'bg-primary-600' : 'bg-gray-100'
-              }`}
-              onPress={() => setSelectedPeriod(period.key)}
-            >
-              <BodyText
-                className={`text-center font-medium ${
-                  selectedPeriod === period.key ? 'text-white' : 'text-gray-600'
+      <ScrollView
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {/* 기간 선택 */}
+        <SectionContainer>
+          <View className="mb-4 flex-row space-x-2">
+            {periods.map(period => (
+              <TouchableOpacity
+                key={period.key}
+                className={`flex-1 rounded-lg px-4 py-3 ${
+                  selectedPeriod === period.key ? 'bg-primary-600' : 'bg-gray-100'
                 }`}
+                onPress={() => setSelectedPeriod(period.key)}
               >
-                {period.label}
-              </BodyText>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </SectionContainer>
-
-      {/* 총 지출 요약 */}
-      <SectionContainer>
-        <H2 className="mb-4">이번 달 지출</H2>
-        <Card className="mb-4">
-          <View className="items-center py-4">
-            <BodyText className="text-4xl font-bold text-primary-600">
-              ₩1,245,000
-            </BodyText>
-            <Caption className="mt-2 text-gray-600">
-              지난달 대비 8% 증가
-            </Caption>
-          </View>
-        </Card>
-      </SectionContainer>
-
-      {/* 카테고리별 지출 */}
-      <SectionContainer>
-        <H2 className="mb-4">카테고리별 지출</H2>
-        <Card className="mb-4">
-          {categoryData.map((category, index) => (
-            <View key={category.name} className={`${index > 0 ? 'mt-4' : ''}`}>
-              <View className="mb-2 flex-row items-center justify-between">
-                <View className="flex-row items-center space-x-2">
-                  <View
-                    className="h-3 w-3 rounded-full"
-                    style={{ backgroundColor: category.color }}
-                  />
-                  <Label>{category.name}</Label>
-                </View>
-                <View className="items-end">
-                  <BodyText className="font-semibold">
-                    ₩{category.amount.toLocaleString()}
-                  </BodyText>
-                  <Caption>{category.percentage}%</Caption>
-                </View>
-              </View>
-              <ProgressBar
-                progress={category.percentage}
-                className="h-2"
-                showGradient={false}
-                style={{ backgroundColor: category.color }}
-              />
-            </View>
-          ))}
-        </Card>
-      </SectionContainer>
-
-      {/* AI 인사이트 */}
-      <SectionContainer>
-        <H2 className="mb-4">AI 인사이트</H2>
-        {insights.map((insight, index) => (
-          <Card key={index} className="mb-3">
-            <View className="flex-row items-start space-x-3">
-              <View
-                className={`mt-1 h-2 w-2 rounded-full ${
-                  insight.type === 'warning'
-                    ? 'bg-warning'
-                    : insight.type === 'success'
-                      ? 'bg-success'
-                      : 'bg-info'
-                }`}
-              />
-              <View className="flex-1">
-                <H3 className="mb-1">{insight.title}</H3>
-                <BodyText variant="secondary" className="mb-3">
-                  {insight.description}
+                <BodyText
+                  className={`text-center font-medium ${
+                    selectedPeriod === period.key ? 'text-white' : 'text-gray-600'
+                  }`}
+                >
+                  {period.label}
                 </BodyText>
-                <Button
-                  title={insight.action}
-                  variant="outline"
-                  size="sm"
-                  leftIcon={<ChatIcon size="xs" color="primary" />}
-                />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </SectionContainer>
+
+        {/* 예산 진행률 */}
+        <SectionContainer>
+          <BudgetProgressChart data={budgetAnalysis} />
+        </SectionContainer>
+
+        {/* 총 지출 요약 */}
+        <SectionContainer>
+          <H2 className="mb-4">이번 달 요약</H2>
+          <Card className="mb-4">
+            <View className="space-y-4">
+              <View className="items-center py-2">
+                <BodyText className="text-3xl font-bold text-primary-600">
+                  ₩{summary.totalSpent.toLocaleString()}
+                </BodyText>
+                <Caption className="mt-1 text-gray-600">
+                  총 지출 (거래 {summary.transactionCount}건)
+                </Caption>
+              </View>
+
+              <View className="flex-row justify-between items-center pt-2 border-t border-gray-200">
+                <View className="flex-1 items-center">
+                  <BodyText className="text-sm text-gray-500">총 수입</BodyText>
+                  <BodyText className="text-lg font-semibold text-green-600">
+                    ₩{summary.totalIncome.toLocaleString()}
+                  </BodyText>
+                </View>
+                <View className="flex-1 items-center">
+                  <BodyText className="text-sm text-gray-500">순자산 변화</BodyText>
+                  <BodyText className={`text-lg font-semibold ${summary.netAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {summary.netAmount >= 0 ? '+' : ''}₩{summary.netAmount.toLocaleString()}
+                  </BodyText>
+                </View>
+                <View className="flex-1 items-center">
+                  <BodyText className="text-sm text-gray-500">평균 거래</BodyText>
+                  <BodyText className="text-lg font-semibold text-gray-900">
+                    ₩{Math.round(summary.averagePerTransaction).toLocaleString()}
+                  </BodyText>
+                </View>
               </View>
             </View>
           </Card>
-        ))}
-      </SectionContainer>
+        </SectionContainer>
 
-      {/* 월별 트렌드 */}
-      <SectionContainer>
-        <H2 className="mb-4">월별 지출 트렌드</H2>
-        <Card className="mb-4">
-          <View className="py-4">
-            {/* 간단한 차트 표시 (실제 구현시 차트 라이브러리 사용) */}
-            <View className="flex-row items-end justify-between space-x-2">
-              {[
-                { month: '1월', amount: 1100000 },
-                { month: '2월', amount: 950000 },
-                { month: '3월', amount: 1200000 },
-                { month: '4월', amount: 1350000 },
-                { month: '5월', amount: 1245000 },
-              ].map((data, index) => (
-                <View key={data.month} className="flex-1 items-center">
-                  <View
-                    className="w-full bg-primary-200"
-                    style={{
-                      height: (data.amount / 1500000) * 100,
-                      minHeight: 20,
-                    }}
-                  />
-                  <Caption className="mt-2">{data.month}</Caption>
-                  <Caption className="text-xs text-gray-500">
-                    {Math.round(data.amount / 10000)}만원
-                  </Caption>
-                </View>
-              ))}
-            </View>
-          </View>
-        </Card>
-      </SectionContainer>
+        {/* AI 인사이트 */}
+        {insights.length > 0 && (
+          <SectionContainer>
+            <H2 className="mb-4">AI 인사이트</H2>
+            {insights.map((insight) => (
+              <InsightCard
+                key={insight.id}
+                insight={insight}
+                onPress={() => console.log('인사이트 클릭:', insight.title)}
+                onActionPress={() => router.push('/chat')}
+              />
+            ))}
+          </SectionContainer>
+        )}
 
-      {/* 예산 vs 실제 */}
-      <SectionContainer>
-        <H2 className="mb-4">예산 vs 실제</H2>
-        <Card className="mb-4">
-          <View className="space-y-4">
-            <View>
-              <View className="mb-2 flex-row items-center justify-between">
-                <Label>예산</Label>
-                <BodyText>₩1,660,000</BodyText>
+        {/* 카테고리별 지출 */}
+        <SectionContainer>
+          <CategoryPieChart
+            data={summary.categoryBreakdown}
+            onCategoryPress={(category) => console.log('카테고리 클릭:', category)}
+          />
+        </SectionContainer>
+
+        {/* 월별 트렌드 */}
+        {monthlyTrends.length > 0 && (
+          <SectionContainer>
+            <SpendingTrendChart
+              data={monthlyTrends}
+              onPointPress={(point) => console.log('트렌드 포인트 클릭:', point)}
+            />
+          </SectionContainer>
+        )}
+
+        {/* 요일별 패턴 */}
+        <SectionContainer>
+          <WeeklyPatternChart
+            data={weeklyPatterns}
+            onDayPress={(pattern) => console.log('요일 패턴 클릭:', pattern)}
+          />
+        </SectionContainer>
+
+        {/* 카테고리 트렌드 분석 */}
+        {categoryTrends.length > 0 && (
+          <SectionContainer>
+            <H2 className="mb-4">카테고리 트렌드</H2>
+            <Card className="mb-4">
+              <View className="space-y-3">
+                {categoryTrends.map((trend, index) => (
+                  <View key={trend.category} className={`${index > 0 ? 'pt-3 border-t border-gray-100' : ''}`}>
+                    <View className="flex-row items-center justify-between">
+                      <View className="flex-1">
+                        <BodyText className="font-medium">{trend.category}</BodyText>
+                        <View className="flex-row items-center mt-1">
+                          <BodyText className="text-sm text-gray-600">
+                            이번 달: ₩{trend.currentMonth.toLocaleString()}
+                          </BodyText>
+                          <Text className="mx-2 text-gray-400">|</Text>
+                          <BodyText className="text-sm text-gray-600">
+                            지난 달: ₩{trend.previousMonth.toLocaleString()}
+                          </BodyText>
+                        </View>
+                      </View>
+                      <View className="items-end">
+                        <View className="flex-row items-center">
+                          <Text className="text-lg mr-1">
+                            {trend.trend === 'up' ? '📈' : trend.trend === 'down' ? '📉' : '➡️'}
+                          </Text>
+                          <BodyText className={`font-semibold ${
+                            trend.trend === 'up' ? 'text-red-600' :
+                            trend.trend === 'down' ? 'text-green-600' : 'text-gray-600'
+                          }`}>
+                            {trend.changePercentage > 0 ? '+' : ''}{trend.changePercentage.toFixed(0)}%
+                          </BodyText>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                ))}
               </View>
-              <ProgressBar progress={100} color="success" className="h-2" />
-            </View>
-            <View>
-              <View className="mb-2 flex-row items-center justify-between">
-                <Label>실제 지출</Label>
-                <BodyText className="text-primary-600">₩1,245,000</BodyText>
-              </View>
-              <ProgressBar progress={75} className="h-2" />
-            </View>
-            <View className="bg-success-50 rounded-lg p-3">
-              <BodyText className="text-center font-medium text-success">
-                예산 대비 ₩415,000 절약 중! 🎉
-              </BodyText>
-            </View>
+            </Card>
+          </SectionContainer>
+        )}
+
+        {/* 추가 액션 */}
+        <SectionContainer>
+          <View className="space-y-3">
+            <Button
+              title="AI 코치와 상담하기"
+              variant="primary"
+              leftIcon={<ChatIcon size="sm" color="white" />}
+              onPress={() => router.push('/chat')}
+            />
+            <Button
+              title="거래 내역 추가하기"
+              variant="outline"
+              onPress={() => router.push('/chat')}
+            />
           </View>
-        </Card>
-      </SectionContainer>
+        </SectionContainer>
+      </ScrollView>
     </Screen>
   );
 }

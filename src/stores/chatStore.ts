@@ -1,8 +1,14 @@
 import { create } from 'zustand';
 import { Message, ChatState } from '../types/chat';
 import { VoiceState } from '../types/voice';
+import { Transaction, ParsedTransaction, PaymentMethod } from '../types/transaction';
 import { pythonLLMService } from '../services/ai/PythonLLMService';
 import { voiceService } from '../services/voice/VoiceService';
+import { transactionStorage } from '../services/storage/TransactionStorage';
+import { NLPParser } from '../services/transaction/NLPParser';
+import { ClassifierService } from '../services/transaction/ClassifierService';
+import { BudgetLLMService } from '../services/ai/BudgetLLMService';
+import { CATEGORIES } from '../constants/categories';
 
 interface ChatStore extends ChatState {
   // Voice state
@@ -19,6 +25,10 @@ interface ChatStore extends ChatState {
   clearMessages: () => void;
   sendMessage: (content: string) => Promise<void>;
   retryMessage: (messageId: string) => Promise<void>;
+
+  // Transaction processing
+  processTransaction: (originalText: string) => Promise<Transaction | null>;
+  confirmTransaction: (parsedData: ParsedTransaction) => Promise<Transaction>;
 
   // Voice actions
   setVoiceRecording: (isRecording: boolean) => void;
@@ -109,7 +119,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   sendMessage: async content => {
-    const { addMessage, setIsLoading, setIsTyping, setError } = get();
+    const { addMessage, setIsLoading, setIsTyping, setError, processTransaction } = get();
 
     try {
       // 사용자 메시지 추가
@@ -125,38 +135,84 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       setIsTyping(true);
       setError(undefined);
 
-      // 거래 기록으로 보이는 메시지인지 확인
-      const isTransactionMessage = content.includes('원') ||
-        content.includes('결제') ||
-        content.includes('지출') ||
-        content.includes('샀') ||
-        content.includes('구매') ||
-        /\d+원/.test(content);
+      // 메시지 타입 감지
+      const isTransactionMessage = NLPParser.parseTransactionText(content) !== null;
+      const budgetIntent = BudgetLLMService.detectBudgetIntent(content);
 
       let aiResponse: string;
-      let messageType: 'text' | 'transaction' | 'advice' = 'text';
+      let messageType: 'text' | 'transaction' | 'advice' | 'budget' = 'text';
       let messageMetadata: any = undefined;
 
-      if (isTransactionMessage) {
+      if (budgetIntent.isBudgetRequest && budgetIntent.confidence > 0.6) {
+        // 예산 관련 요청 처리
         try {
-          // 거래 파싱 시도
-          const transactionData = await pythonLLMService.parseTransaction(content);
+          if (budgetIntent.intentType === 'create') {
+            const budgetParseResult = await BudgetLLMService.parseBudgetFromText(content);
 
-          // 거래 기록 응답 생성
-          aiResponse = await pythonLLMService.getFinancialAdvice(
-            `다음 거래를 기록했습니다: ${transactionData.description} ${transactionData.amount}원 (${transactionData.category}, ${transactionData.paymentMethod}). 간단히 확인 메시지를 한국어로 알려주세요.`
-          );
+            if (budgetParseResult.success && budgetParseResult.budgetData) {
+              aiResponse = `✅ 예산을 설정하겠습니다!\n\n` +
+                `📋 ${budgetParseResult.budgetData.name}\n` +
+                `💰 ${budgetParseResult.budgetData.amount?.toLocaleString()}원\n` +
+                `📅 ${budgetParseResult.budgetData.period === 'monthly' ? '월간' : budgetParseResult.budgetData.period}\n\n` +
+                `이 예산으로 설정할까요?`;
 
-          messageType = 'transaction';
-          messageMetadata = {
-            transaction: {
-              amount: transactionData.amount,
-              category: transactionData.category,
-              location: transactionData.description,
-            },
-          };
+              messageType = 'budget';
+              messageMetadata = {
+                budget: budgetParseResult.budgetData,
+                action: 'create_pending',
+              };
+            } else {
+              aiResponse = `💭 예산 정보를 정확히 파악하지 못했습니다.\n\n` +
+                `다음 정보를 포함해서 다시 말씀해주세요:\n` +
+                `• 카테고리 (식비, 교통비, 쇼핑 등)\n` +
+                `• 금액 (예: 30만원)\n` +
+                `• 기간 (매월, 매주 등)\n\n` +
+                `예시: "매월 식비 30만원으로 예산 설정해줘"`;
+            }
+          } else {
+            // 예산 조언, 조회 등
+            aiResponse = await BudgetLLMService.getBudgetAdvice(content);
+            messageType = 'advice';
+          }
+        } catch (budgetError) {
+          console.warn('예산 처리 실패:', budgetError);
+          aiResponse = await pythonLLMService.getFinancialAdvice(content);
+        }
+      } else if (isTransactionMessage) {
+        try {
+          // 새로운 거래 처리 시스템 사용
+          const transaction = await processTransaction(content);
+
+          if (transaction) {
+            // 성공적으로 거래가 기록됨
+            const categoryInfo = CATEGORIES[transaction.category];
+            aiResponse = `✅ 거래를 기록했습니다!\n\n` +
+              `💰 ${transaction.isIncome ? '+' : '-'}${Math.abs(transaction.amount).toLocaleString()}원\n` +
+              `${categoryInfo.icon} ${categoryInfo.name}${transaction.subcategory ? ` > ${transaction.subcategory}` : ''}\n` +
+              `📝 ${transaction.description}\n` +
+              `${transaction.location ? `📍 ${transaction.location}\n` : ''}` +
+              `🤖 AI 분류 신뢰도: ${Math.round(transaction.confidence * 100)}%`;
+
+            messageType = 'transaction';
+            messageMetadata = {
+              transaction: {
+                id: transaction.id,
+                amount: transaction.amount,
+                category: transaction.category,
+                subcategory: transaction.subcategory,
+                description: transaction.description,
+                location: transaction.location,
+                isIncome: transaction.isIncome,
+                confidence: transaction.confidence,
+                date: transaction.date,
+              },
+            };
+          } else {
+            // 거래 파싱 실패했지만 거래로 추정되는 경우
+            aiResponse = '💭 거래 내용을 정확히 파악하지 못했습니다.\n더 구체적으로 말씀해주세요.\n\n예시: "스타벅스에서 아메리카노 4500원 카드로 결제"';
+          }
         } catch (transactionError) {
-          console.warn('거래 파싱 실패, 일반 채팅으로 처리:', transactionError);
+          console.warn('거래 처리 실패:', transactionError);
           // 거래 파싱 실패 시 일반 채팅으로 처리
           aiResponse = await pythonLLMService.getFinancialAdvice(content);
         }
@@ -218,6 +274,96 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         // 실패하면 다시 에러 상태로 변경
         updateMessage(messageId, { status: 'error' });
       }
+    }
+  },
+
+  // Transaction processing methods
+  processTransaction: async (originalText: string): Promise<Transaction | null> => {
+    try {
+      // 1단계: 자연어 파싱
+      const parsedData = NLPParser.parseTransactionText(originalText);
+
+      if (!parsedData.amount || parsedData.amount <= 0) {
+        console.warn('거래 금액을 파악할 수 없음:', originalText);
+        return null;
+      }
+
+      // 2단계: AI 분류 (선택적)
+      let aiResult: { category: string; confidence: number } | undefined;
+      try {
+        const aiResponse = await pythonLLMService.parseTransaction(originalText);
+        if (aiResponse && aiResponse.category) {
+          aiResult = {
+            category: aiResponse.category,
+            confidence: 0.7, // AI 응답에서 confidence가 없을 수 있으므로 기본값 사용
+          };
+        }
+      } catch (aiError) {
+        console.warn('AI 분류 실패, 룰 베이스 분류로 진행:', aiError);
+      }
+
+      // 3단계: 종합 분류
+      const classificationResult = ClassifierService.classifyTransaction(
+        originalText,
+        parsedData,
+        aiResult
+      );
+
+      // 4단계: 최종 거래 데이터 생성
+      const finalParsedData: ParsedTransaction = {
+        amount: parsedData.amount || 0,
+        description: parsedData.description || '거래',
+        paymentMethod: parsedData.paymentMethod || PaymentMethod.CARD,
+        isIncome: parsedData.isIncome || false,
+        category: classificationResult.category,
+        subcategory: classificationResult.subcategory,
+        confidence: classificationResult.confidence,
+        originalText,
+        date: parsedData.date,
+        location: parsedData.location,
+        tags: parsedData.tags || [],
+      };
+
+      // 5단계: 거래 저장
+      const transaction = await get().confirmTransaction(finalParsedData);
+
+      return transaction;
+    } catch (error) {
+      console.error('거래 처리 중 오류:', error);
+      return null;
+    }
+  },
+
+  confirmTransaction: async (parsedData: ParsedTransaction): Promise<Transaction> => {
+    try {
+      // 거래 데이터를 AsyncStorage에 저장
+      const transaction = await transactionStorage.addTransaction({
+        amount: parsedData.amount,
+        description: parsedData.description,
+        category: parsedData.category,
+        subcategory: parsedData.subcategory,
+        date: parsedData.date || new Date(),
+        paymentMethod: parsedData.paymentMethod,
+        location: parsedData.location,
+        isIncome: parsedData.isIncome,
+        tags: parsedData.tags || [],
+        confidence: parsedData.confidence,
+        originalText: parsedData.originalText,
+        aiParsed: true,
+        userModified: false,
+      });
+
+      // 학습을 위해 분류 피드백 저장 (향후 구현)
+      await ClassifierService.learnFromFeedback(
+        parsedData.originalText,
+        parsedData.category,
+        parsedData.subcategory
+      );
+
+      return transaction;
+    } catch (error) {
+      console.error('거래 저장 실패:', error);
+      throw error;
     }
   },
 

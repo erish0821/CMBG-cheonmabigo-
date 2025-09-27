@@ -3,6 +3,7 @@ export * from './navigation';
 export * from './chat';
 export * from './ai';
 export * from './voice';
+export * from './transaction';
 
 // 공통 타입 정의
 export interface BaseEntity {
@@ -26,33 +27,9 @@ export interface UserPreferences {
   language: 'ko' | 'en';
 }
 
-// 거래 타입
-export interface Transaction extends BaseEntity {
-  title: string;
-  amount: number;
-  category: string;
-  date: Date;
-  location?: string;
-  memo?: string;
-  tags: string[];
-  paymentMethod: PaymentMethod;
-  isRecurring: boolean;
-}
-
-export type PaymentMethod =
-  | 'cash'
-  | 'card'
-  | 'bank-transfer'
-  | 'digital-wallet';
-
-// 카테고리 타입
-export interface Category extends BaseEntity {
-  name: string;
-  icon: string;
-  color: string;
-  budget?: number;
-  isDefault: boolean;
-}
+// 기존 거래 타입은 transaction.ts로 이동됨
+// 하위 호환성을 위해 별칭 제공
+export type { Transaction, PaymentMethod, CategoryType as Category } from './transaction';
 
 // 목표 타입
 export interface Goal extends BaseEntity {

@@ -7,7 +7,7 @@ import {
   AIServiceState,
   AIMetrics,
 } from '../../types/ai';
-import { Transaction } from '../../types';
+import { Transaction, CategoryType, PaymentMethod } from '../../types/transaction';
 import { ExaoneService } from './ExaoneService';
 import { PromptManager } from './PromptManager';
 import { ResponseParser } from './ResponseParser';
@@ -382,29 +382,33 @@ export class CheonmaBigoAI {
   private convertToTransaction(extracted: any): Transaction {
     return {
       id: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      title: extracted.description || '지출',
+      description: extracted.description || '지출',
       amount: extracted.amount,
-      category: extracted.category || '기타',
+      category: extracted.category || CategoryType.OTHER,
+      subcategory: extracted.subcategory,
       date: extracted.date || new Date(),
-      location: extracted.location,
-      memo: extracted.description,
-      tags: [],
       paymentMethod: this.mapPaymentMethod(extracted.paymentMethod),
-      isRecurring: false,
+      location: extracted.location,
+      isIncome: extracted.isIncome || false,
+      tags: [],
+      confidence: extracted.confidence || 0.7,
+      originalText: extracted.originalText || '',
+      aiParsed: true,
+      userModified: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
   }
 
-  private mapPaymentMethod(method?: string): any {
-    const mapping: Record<string, any> = {
-      카드: 'card',
-      현금: 'cash',
-      계좌이체: 'bank-transfer',
-      모바일페이: 'digital-wallet',
+  private mapPaymentMethod(method?: string): PaymentMethod {
+    const mapping: Record<string, PaymentMethod> = {
+      카드: PaymentMethod.CARD,
+      현금: PaymentMethod.CASH,
+      계좌이체: PaymentMethod.TRANSFER,
+      모바일페이: PaymentMethod.MOBILE_PAY,
     };
 
-    return mapping[method || ''] || 'card';
+    return mapping[method || ''] || PaymentMethod.CARD;
   }
 
   private extractInsightsFromText(text: string): string[] {

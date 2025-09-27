@@ -39,7 +39,11 @@
       "Bash(git add:*)",
       "Bash(git push:*)",
       "mcp__sequential-thinking__sequentialthinking",
-      "Bash(git branch:*)"
+      "Bash(git branch:*)",
+      "mcp__playwright__browser_take_screenshot",
+      "Bash(npx ts-node:*)",
+      "mcp__playwright__browser_handle_dialog",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

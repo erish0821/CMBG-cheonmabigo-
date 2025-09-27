@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, ScrollView, Alert } from 'react-native';
+import { View, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useAuthStore } from '../../src/stores/authStore';
 import {
   Screen,
   Container,
@@ -22,6 +23,7 @@ import { AddIcon, AnalyticsIcon, HomeIcon } from '../../src/components/ui/Icon';
 
 export default function SetupScreen() {
   const router = useRouter();
+  const { updateProfile, isLoading } = useAuthStore();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
 
@@ -96,17 +98,71 @@ export default function SetupScreen() {
     }
   };
 
-  const handleComplete = () => {
-    Alert.alert(
-      '설정 완료',
-      '천마비고 설정이 완료되었습니다! 이제 AI와 함께 똑똑한 가계부 관리를 시작해보세요.',
-      [
-        {
-          text: '시작하기',
-          onPress: () => router.replace('/(tabs)'),
+  const handleComplete = async () => {
+    try {
+      // 온보딩 정보를 Backend에 저장
+      const onboardingData = {
+        name: profile.name.trim(),
+        preferences: {
+          onboardingCompleted: true,
+          profile: {
+            age: profile.age ? parseInt(profile.age) : null,
+            occupation: profile.occupation.trim() || null,
+          },
+          budget: {
+            monthlyIncome: budget.monthlyIncome.replace(/,/g, '') || null,
+            monthlyBudget: budget.monthlyBudget.replace(/,/g, '') || null,
+            categories: {
+              food: budget.categories.food.replace(/,/g, '') || null,
+              transport: budget.categories.transport.replace(/,/g, '') || null,
+              shopping: budget.categories.shopping.replace(/,/g, '') || null,
+              entertainment: budget.categories.entertainment.replace(/,/g, '') || null,
+            },
+          },
+          goals: {
+            primaryGoal: goals.primaryGoal.trim() || null,
+            targetAmount: goals.targetAmount.replace(/,/g, '') || null,
+            timeframe: goals.timeframe.trim() || null,
+          },
+          settings: {
+            notifications: preferences.notifications,
+            analysisFrequency: preferences.analysisFrequency,
+            privacyLevel: preferences.privacyLevel,
+          },
         },
-      ]
-    );
+      };
+
+      // API 호출하여 프로필 업데이트
+      await updateProfile(onboardingData);
+
+      // 성공 메시지 표시
+      if (typeof window !== 'undefined') {
+        const result = confirm('천마비고 설정이 완료되었습니다! 이제 AI와 함께 똑똑한 가계부 관리를 시작해보세요. 시작하시겠습니까?');
+        if (result) {
+          router.replace('/(tabs)');
+        }
+      } else {
+        Alert.alert(
+          '설정 완료',
+          '천마비고 설정이 완료되었습니다! 이제 AI와 함께 똑똑한 가계부 관리를 시작해보세요.',
+          [
+            {
+              text: '시작하기',
+              onPress: () => router.replace('/(tabs)'),
+            },
+          ]
+        );
+      }
+    } catch (error: any) {
+      console.error('온보딩 저장 오류:', error);
+
+      // 오류 메시지 표시
+      if (typeof window !== 'undefined') {
+        alert('설정 저장 중 문제가 발생했습니다. 다시 시도해주세요.');
+      } else {
+        Alert.alert('오류', '설정 저장 중 문제가 발생했습니다. 다시 시도해주세요.');
+      }
+    }
   };
 
   const renderStep1 = () => (
@@ -410,13 +466,19 @@ export default function SetupScreen() {
             />
           )}
           <Button
-            title={currentStep === totalSteps ? '완료' : '다음'}
+            title={
+              isLoading && currentStep === totalSteps
+                ? '저장 중...'
+                : currentStep === totalSteps
+                  ? '완료'
+                  : '다음'
+            }
             variant="primary"
             className="flex-1"
             onPress={nextStep}
-            disabled={!canProceed()}
+            disabled={!canProceed() || isLoading}
             leftIcon={
-              currentStep === totalSteps ? (
+              currentStep === totalSteps && !isLoading ? (
                 <AddIcon size="sm" color="white" />
               ) : undefined
             }

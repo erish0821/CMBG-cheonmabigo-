@@ -144,16 +144,16 @@ export default function WelcomeScreen() {
       <SectionContainer>
         <View className="space-y-4">
           <Button
-            title="시작하기"
+            title="계정 만들기"
             variant="primary"
             size="lg"
-            onPress={() => router.push('/onboarding/setup')}
+            onPress={() => router.push('/auth/register')}
           />
           <Button
             title="이미 계정이 있어요"
             variant="outline"
             size="lg"
-            onPress={() => router.replace('/(tabs)')}
+            onPress={() => router.push('/auth/login')}
           />
         </View>
       </SectionContainer>

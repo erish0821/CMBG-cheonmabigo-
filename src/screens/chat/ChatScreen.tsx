@@ -102,6 +102,8 @@ export function ChatScreen() {
         isTyping={isTyping}
         onRefresh={handleRefresh}
         refreshing={false}
+        onRetry={handleRetry}
+        onCopy={handleCopy}
       />
 
       {/* 메시지 입력 */}

@@ -9,6 +9,8 @@ export function MessageList({
   isTyping = false,
   onRefresh,
   refreshing = false,
+  onRetry,
+  onCopy,
 }: MessageListProps) {
   const flatListRef = useRef<FlatList>(null);
 
@@ -24,14 +26,8 @@ export function MessageList({
   const renderMessage: ListRenderItem<Message> = ({ item }) => (
     <MessageBubble
       message={item}
-      onRetry={messageId => {
-        // 메시지 재전송 로직은 부모 컴포넌트에서 처리
-        console.log('Retry message:', messageId);
-      }}
-      onCopy={content => {
-        // 메시지 복사 로직
-        console.log('Copy message:', content);
-      }}
+      onRetry={onRetry}
+      onCopy={onCopy}
     />
   );
 

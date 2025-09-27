@@ -52,6 +52,8 @@ export interface MessageListProps {
   isTyping?: boolean;
   onRefresh?: () => void;
   refreshing?: boolean;
+  onRetry?: (messageId: string) => void;
+  onCopy?: (content: string) => void;
 }
 
 export interface TypingIndicatorProps {

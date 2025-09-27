@@ -140,7 +140,7 @@ export function MessageBubble({
           max-w-[80%] rounded-2xl px-4 py-3
           ${
             isUser
-              ? 'rounded-br-md bg-gradient-to-r from-primary-500 to-primary-600'
+              ? 'rounded-br-md bg-gradient-to-r from-primary-500 to-primary-600 shadow-lg'
               : 'rounded-bl-md border border-gray-100 bg-white shadow-md'
           }
         `}

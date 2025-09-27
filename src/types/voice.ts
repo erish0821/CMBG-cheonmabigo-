@@ -72,13 +72,13 @@ export interface KoreanFinanceTerms {
 
 // 음성 입력 의도 분류
 export type VoiceIntent =
-  | 'expense_record'    // 지출 기록
-  | 'income_record'     // 수입 기록
-  | 'balance_inquiry'   // 잔액 조회
+  | 'expense_record' // 지출 기록
+  | 'income_record' // 수입 기록
+  | 'balance_inquiry' // 잔액 조회
   | 'category_analysis' // 카테고리별 분석
-  | 'goal_setting'      // 목표 설정
-  | 'general_question'  // 일반 질문
-  | 'unknown';         // 알 수 없음
+  | 'goal_setting' // 목표 설정
+  | 'general_question' // 일반 질문
+  | 'unknown'; // 알 수 없음
 
 export interface VoiceIntentResult {
   intent: VoiceIntent;

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { Message, ChatState } from '../types/chat';
 import { VoiceState } from '../types/voice';
-import { exaoneService } from '../services/ai';
+import { pythonLLMService } from '../services/ai/PythonLLMService';
 import { voiceService } from '../services/voice/VoiceService';
 
 interface ChatStore extends ChatState {
@@ -125,42 +125,67 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       setIsTyping(true);
       setError(undefined);
 
-      // AI 응답 생성
-      const response = await exaoneService.processMessage(content);
+      // 거래 기록으로 보이는 메시지인지 확인
+      const isTransactionMessage = content.includes('원') ||
+        content.includes('결제') ||
+        content.includes('지출') ||
+        content.includes('샀') ||
+        content.includes('구매') ||
+        /\d+원/.test(content);
+
+      let aiResponse: string;
+      let messageType: 'text' | 'transaction' | 'advice' = 'text';
+      let messageMetadata: any = undefined;
+
+      if (isTransactionMessage) {
+        try {
+          // 거래 파싱 시도
+          const transactionData = await pythonLLMService.parseTransaction(content);
+
+          // 거래 기록 응답 생성
+          aiResponse = await pythonLLMService.getFinancialAdvice(
+            `다음 거래를 기록했습니다: ${transactionData.description} ${transactionData.amount}원 (${transactionData.category}, ${transactionData.paymentMethod}). 간단히 확인 메시지를 한국어로 알려주세요.`
+          );
+
+          messageType = 'transaction';
+          messageMetadata = {
+            transaction: {
+              amount: transactionData.amount,
+              category: transactionData.category,
+              location: transactionData.description,
+            },
+          };
+        } catch (transactionError) {
+          console.warn('거래 파싱 실패, 일반 채팅으로 처리:', transactionError);
+          // 거래 파싱 실패 시 일반 채팅으로 처리
+          aiResponse = await pythonLLMService.getFinancialAdvice(content);
+        }
+      } else {
+        // 일반 재정 상담
+        aiResponse = await pythonLLMService.getFinancialAdvice(content);
+
+        // 조언 관련 키워드가 있으면 advice 타입으로 설정
+        if (content.includes('조언') || content.includes('팁') || content.includes('어떻게') || content.includes('방법')) {
+          messageType = 'advice';
+          messageMetadata = {
+            advice: {
+              suggestions: ['더 자세한 상황을 알려주세요', '구체적인 목표를 설정해보세요', '단계적 계획을 세워보세요'],
+              analysis: 'AI 재정 코치 분석',
+            },
+          };
+        }
+      }
 
       // 타이핑 중지
       setIsTyping(false);
 
       // AI 응답 추가
       addMessage({
-        content: response.content,
+        content: aiResponse,
         sender: 'ai',
-        type:
-          response.intent === 'transaction_record'
-            ? 'transaction'
-            : response.intent === 'financial_advice'
-              ? 'advice'
-              : 'text',
+        type: messageType,
         status: 'sent',
-        metadata:
-          response.intent === 'transaction_record' &&
-          response.extractedData?.transaction
-            ? {
-                transaction: {
-                  amount: response.extractedData.transaction.amount,
-                  category:
-                    response.extractedData.transaction.category || '기타',
-                  location: response.extractedData.transaction.location,
-                },
-              }
-            : response.intent === 'financial_advice' && response.suggestions
-              ? {
-                  advice: {
-                    suggestions: response.suggestions,
-                    analysis: '분석 결과',
-                  },
-                }
-              : undefined,
+        metadata: messageMetadata,
       });
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -276,20 +301,20 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         onSpeechEnd: () => {
           setVoiceRecording(false);
         },
-        onSpeechResults: (results) => {
+        onSpeechResults: results => {
           if (results && results.length > 0) {
             get().handleVoiceInput(results[0]);
           }
         },
-        onSpeechPartialResults: (results) => {
+        onSpeechPartialResults: results => {
           if (results && results.length > 0) {
             get().setVoiceText(results[0]);
           }
         },
-        onSpeechError: (error) => {
+        onSpeechError: error => {
           setVoiceError(error);
         },
-        onSpeechVolumeChanged: (volume) => {
+        onSpeechVolumeChanged: volume => {
           get().setAudioLevel(volume);
         },
       });

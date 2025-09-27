@@ -73,7 +73,9 @@ class VoiceService {
     try {
       if (this.isWebEnvironment) {
         // 웹 환경에서는 브라우저가 자동으로 권한 요청
-        return 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+        return (
+          'webkitSpeechRecognition' in window || 'SpeechRecognition' in window
+        );
       }
 
       if (Platform.OS === 'android') {
@@ -102,7 +104,8 @@ class VoiceService {
           PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
           {
             title: '마이크 접근 권한',
-            message: '천마비고에서 음성으로 지출 내역을 입력하기 위해 마이크 접근 권한이 필요합니다.',
+            message:
+              '천마비고에서 음성으로 지출 내역을 입력하기 위해 마이크 접근 권한이 필요합니다.',
             buttonNeutral: '나중에 묻기',
             buttonNegative: '취소',
             buttonPositive: '허용',
@@ -141,7 +144,8 @@ class VoiceService {
         EXTRA_CALLING_PACKAGE: 'com.cheonmabigo.app',
         EXTRA_PARTIAL_RESULTS: this.config.interimResults,
         REQUEST_PERMISSIONS_AUTO: true,
-        EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS: this.config.timeout,
+        EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS:
+          this.config.timeout,
         EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS: 3000,
       });
 
@@ -156,10 +160,13 @@ class VoiceService {
 
   private startWebSpeechRecognition(): boolean {
     try {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const SpeechRecognition =
+        window.SpeechRecognition || window.webkitSpeechRecognition;
 
       if (!SpeechRecognition) {
-        this.callbacks.onSpeechError?.('이 브라우저는 음성 인식을 지원하지 않습니다.');
+        this.callbacks.onSpeechError?.(
+          '이 브라우저는 음성 인식을 지원하지 않습니다.'
+        );
         return false;
       }
 
@@ -168,7 +175,8 @@ class VoiceService {
       // Web Speech API 설정
       this.webSpeechRecognition.lang = this.config.locale || 'ko-KR';
       this.webSpeechRecognition.continuous = this.config.continuous || false;
-      this.webSpeechRecognition.interimResults = this.config.interimResults || true;
+      this.webSpeechRecognition.interimResults =
+        this.config.interimResults || true;
       this.webSpeechRecognition.maxAlternatives = this.config.maxResults || 5;
 
       // 이벤트 핸들러 설정
@@ -237,7 +245,6 @@ class VoiceService {
       // 음성 인식 시작
       this.webSpeechRecognition.start();
       return true;
-
     } catch (error) {
       console.error('Web Speech Recognition initialization error:', error);
       this.callbacks.onSpeechError?.('웹 음성 인식을 시작할 수 없습니다.');

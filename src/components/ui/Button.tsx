@@ -64,10 +64,26 @@ export const Button: React.FC<ButtonProps> = ({
       className={`shadow-button items-center justify-center rounded-xl ${getVariantClasses()} ${getSizeClasses()} ${className}`}
       {...props}
     >
-      <View className="flex-row items-center justify-center space-x-2">
-        {leftIcon && <View>{leftIcon}</View>}
+      <View className="flex-row items-center justify-center" style={{ gap: 8 }}>
+        {leftIcon && (
+          <View>
+            {typeof leftIcon === 'string' ? (
+              <Text className={getTextClasses()}>{leftIcon}</Text>
+            ) : (
+              leftIcon
+            )}
+          </View>
+        )}
         <Text className={getTextClasses()}>{title}</Text>
-        {rightIcon && <View>{rightIcon}</View>}
+        {rightIcon && (
+          <View>
+            {typeof rightIcon === 'string' ? (
+              <Text className={getTextClasses()}>{rightIcon}</Text>
+            ) : (
+              rightIcon
+            )}
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );

@@ -86,7 +86,7 @@ export function TypingIndicator({
         <View className="flex-row items-center">
           <Text className="mr-2 text-sm text-gray-600">{text}</Text>
 
-          <View className="flex-row items-center space-x-1">
+          <View className="flex-row items-center" style={{ gap: 4 }}>
             <Animated.View
               style={{ opacity: dot1Opacity }}
               className="h-2 w-2 rounded-full bg-primary-500"

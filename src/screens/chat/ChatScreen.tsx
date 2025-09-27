@@ -60,11 +60,14 @@ export function ChatScreen() {
     }
   }, []);
 
-  const handleVoiceResult = useCallback((text: string) => {
-    // 음성 인식 결과를 자동으로 전송
-    setInputText(text);
-    sendMessage(text);
-  }, [sendMessage, setInputText]);
+  const handleVoiceResult = useCallback(
+    (text: string) => {
+      // 음성 인식 결과를 자동으로 전송
+      setInputText(text);
+      sendMessage(text);
+    },
+    [sendMessage, setInputText]
+  );
 
   return (
     <SafeAreaView className="flex-1 bg-white">

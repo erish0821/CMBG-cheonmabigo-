@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, ScrollViewProps, View } from 'react-native';
+import { ScrollView, ScrollViewProps, View, Text } from 'react-native';
 import { SafeAreaWrapper } from './SafeAreaWrapper';
 import { H1, BodyText } from '../ui/Typography';
 
@@ -66,7 +66,15 @@ export const Screen: React.FC<ScreenProps> = ({
             {(title || headerAction) && (
               <View className="mb-2 flex-row items-center justify-between">
                 {title && <H1 className="flex-1">{title}</H1>}
-                {headerAction && <View>{headerAction}</View>}
+                {headerAction && (
+                  <View>
+                    {typeof headerAction === 'string' ? (
+                      <Text>{headerAction}</Text>
+                    ) : (
+                      headerAction
+                    )}
+                  </View>
+                )}
               </View>
             )}
 

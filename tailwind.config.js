@@ -5,6 +5,7 @@ module.exports = {
     './src/**/*.{js,jsx,ts,tsx}',
     './app/**/*.{js,jsx,ts,tsx}',
   ],
+  darkMode: false, // 다크모드 완전 비활성화
   presets: [require('nativewind/preset')],
   theme: {
     extend: {

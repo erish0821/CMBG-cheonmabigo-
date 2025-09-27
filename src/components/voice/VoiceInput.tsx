@@ -8,7 +8,10 @@ import {
   Vibration,
   Alert,
 } from 'react-native';
-import { voiceService, VoiceServiceCallbacks } from '../../services/voice/VoiceService';
+import {
+  voiceService,
+  VoiceServiceCallbacks,
+} from '../../services/voice/VoiceService';
 
 export interface VoiceInputProps {
   onSpeechResult: (text: string) => void;
@@ -273,7 +276,7 @@ export function VoiceInput({
       {/* 녹음 시간 표시 */}
       {isRecording && (
         <View className="mb-2">
-          <Text className="text-center text-sm font-mono text-red-500">
+          <Text className="text-center font-mono text-sm text-red-500">
             {formatTime(recordingTime)}
           </Text>
         </View>
@@ -316,9 +319,7 @@ export function VoiceInput({
             accessibilityLabel={isRecording ? '녹음 중지' : '음성 입력 시작'}
             accessibilityHint={placeholder}
           >
-            <Text style={{ fontSize: iconSize }}>
-              {getButtonText()}
-            </Text>
+            <Text style={{ fontSize: iconSize }}>{getButtonText()}</Text>
 
             {/* 음성 레벨 시각화 */}
             {isRecording && (

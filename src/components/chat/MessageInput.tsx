@@ -95,17 +95,17 @@ export function MessageInput({
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <View className="border-t border-gray-100 bg-white px-4 py-3">
-        <View className="flex-row items-end space-x-3">
+        <View className="flex-row items-end" style={{ gap: 12 }}>
           {/* 음성 입력 컴포넌트 */}
           {onVoicePress && (
             <VoiceInput
-              onSpeechResult={(text) => {
+              onSpeechResult={text => {
                 onChangeText(text);
                 if (text.trim()) {
                   setTimeout(() => handleSend(), 100);
                 }
               }}
-              onError={(error) => {
+              onError={error => {
                 console.error('Voice input error:', error);
               }}
               size="small"
@@ -174,8 +174,12 @@ export function MessageInput({
                 cursor: canSend ? 'pointer' : 'not-allowed',
               },
               canSend
-                ? { backgroundColor: '#7C3AED', shadowOpacity: 0.3, shadowRadius: 4 }
-                : { backgroundColor: '#E5E7EB' }
+                ? {
+                    backgroundColor: '#7C3AED',
+                    shadowOpacity: 0.3,
+                    shadowRadius: 4,
+                  }
+                : { backgroundColor: '#E5E7EB' },
             ]}
           >
             <SendIcon color={canSend ? '#FFFFFF' : '#9CA3AF'} size={20} />

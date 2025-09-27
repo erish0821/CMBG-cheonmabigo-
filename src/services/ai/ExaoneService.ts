@@ -31,12 +31,15 @@ export class ExaoneService {
 
   constructor(config?: Partial<ExaoneConfig>) {
     this.config = {
-      modelName: process.env.EXPO_PUBLIC_EXAONE_MODEL || 'LGAI-EXAONE/EXAONE-3.5-7.8B-Instruct',
+      modelName:
+        process.env.EXPO_PUBLIC_EXAONE_MODEL ||
+        'LGAI-EXAONE/EXAONE-3.5-7.8B-Instruct',
       maxTokens: 512,
       temperature: 0.7,
       systemPrompt: '',
       contextWindow: 4096,
-      apiUrl: 'https://api-inference.huggingface.co/models/LGAI-EXAONE/EXAONE-3.5-7.8B-Instruct',
+      apiUrl:
+        'https://api-inference.huggingface.co/models/LGAI-EXAONE/EXAONE-3.5-7.8B-Instruct',
       apiKey: process.env.EXPO_PUBLIC_HF_TOKEN || process.env.HF_TOKEN || '',
       ...config,
     };
@@ -92,7 +95,9 @@ export class ExaoneService {
       this.state.isInitialized = true;
       this.state.modelLoaded = true;
 
-      console.log('ExaoneService initialized successfully with pattern matching');
+      console.log(
+        'ExaoneService initialized successfully with pattern matching'
+      );
     } catch (error) {
       console.error('ExaoneService initialization failed:', error);
       this.state.errorCount++;
@@ -156,17 +161,29 @@ export class ExaoneService {
    * 응답 패턴 검증
    */
   private async validateResponsePatterns(): Promise<void> {
-    const requiredPatterns = ['transaction', 'advice', 'goal', 'analysis', 'general', 'greeting'];
+    const requiredPatterns = [
+      'transaction',
+      'advice',
+      'goal',
+      'analysis',
+      'general',
+      'greeting',
+    ];
 
     for (const pattern of requiredPatterns) {
-      if (!this.aiResponses.has(pattern) || this.aiResponses.get(pattern)!.length === 0) {
+      if (
+        !this.aiResponses.has(pattern) ||
+        this.aiResponses.get(pattern)!.length === 0
+      ) {
         console.warn(`Missing response pattern: ${pattern}`);
       }
     }
 
-    console.log(`Loaded ${this.aiResponses.size} response patterns with ${
-      Array.from(this.aiResponses.values()).reduce((sum, arr) => sum + arr.length, 0)
-    } total responses`);
+    console.log(
+      `Loaded ${this.aiResponses.size} response patterns with ${Array.from(
+        this.aiResponses.values()
+      ).reduce((sum, arr) => sum + arr.length, 0)} total responses`
+    );
   }
 
   /**
@@ -258,7 +275,8 @@ export class ExaoneService {
         return this.generatePatternMatchingResponse(prompt);
       }
 
-      const apiUrl = 'https://api-inference.huggingface.co/models/LGAI-EXAONE/EXAONE-3.5-7.8B-Instruct';
+      const apiUrl =
+        'https://api-inference.huggingface.co/models/LGAI-EXAONE/EXAONE-3.5-7.8B-Instruct';
 
       const requestBody = {
         inputs: prompt,
@@ -268,12 +286,12 @@ export class ExaoneService {
           top_p: 0.9,
           do_sample: true,
           repetition_penalty: 1.1,
-          return_full_text: false
+          return_full_text: false,
         },
         options: {
           wait_for_model: true,
-          use_cache: false
-        }
+          use_cache: false,
+        },
       };
 
       console.log('Making API request to:', apiUrl);
@@ -281,14 +299,18 @@ export class ExaoneService {
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.config.apiKey}`,
+          Authorization: `Bearer ${this.config.apiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
-        console.error('API response not ok:', response.status, response.statusText);
+        console.error(
+          'API response not ok:',
+          response.status,
+          response.statusText
+        );
 
         // API 오류 시 패턴 매칭으로 폴백
         if (response.status === 503) {
@@ -332,7 +354,6 @@ export class ExaoneService {
           tokensUsed: this.estimateTokens(prompt + aiResponse),
         },
       });
-
     } catch (error) {
       console.error('EXAONE API call failed:', error);
 
@@ -430,17 +451,9 @@ export class ExaoneService {
           '절약 목표 설정하기',
         ];
       case 'goal_setting':
-        return [
-          '목표 달성 계획 세우기',
-          '진행 상황 확인하기',
-          '동기부여 받기',
-        ];
+        return ['목표 달성 계획 세우기', '진행 상황 확인하기', '동기부여 받기'];
       case 'spending_analysis':
-        return [
-          '상세 분석 보기',
-          '절약 포인트 찾기',
-          '예산 조정하기',
-        ];
+        return ['상세 분석 보기', '절약 포인트 찾기', '예산 조정하기'];
       case 'greeting':
         return [
           '오늘 지출 기록하기',
@@ -448,11 +461,7 @@ export class ExaoneService {
           '저축 목표 세우기',
         ];
       default:
-        return [
-          '지출 기록하기',
-          '예산 계획 세우기',
-          '재정 조언 받기',
-        ];
+        return ['지출 기록하기', '예산 계획 세우기', '재정 조언 받기'];
     }
   }
 
@@ -526,7 +535,11 @@ export class ExaoneService {
     const lowerInput = input.toLowerCase();
 
     // 인사 패턴
-    if (lowerInput.includes('안녕') || lowerInput.includes('hello') || lowerInput.includes('hi')) {
+    if (
+      lowerInput.includes('안녕') ||
+      lowerInput.includes('hello') ||
+      lowerInput.includes('hi')
+    ) {
       return 'greeting';
     }
 
@@ -652,10 +665,20 @@ export class ExaoneService {
   private async checkModelHealth(): Promise<boolean> {
     try {
       // 응답 패턴이 제대로 로드되었는지 확인
-      const requiredPatterns = ['transaction', 'advice', 'goal', 'analysis', 'general', 'greeting'];
+      const requiredPatterns = [
+        'transaction',
+        'advice',
+        'goal',
+        'analysis',
+        'general',
+        'greeting',
+      ];
 
       for (const pattern of requiredPatterns) {
-        if (!this.aiResponses.has(pattern) || this.aiResponses.get(pattern)!.length === 0) {
+        if (
+          !this.aiResponses.has(pattern) ||
+          this.aiResponses.get(pattern)!.length === 0
+        ) {
           console.warn(`Pattern missing or empty: ${pattern}`);
           return false;
         }

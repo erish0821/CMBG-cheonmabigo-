@@ -24,11 +24,7 @@ export function MessageList({
   }, [messages.length]);
 
   const renderMessage: ListRenderItem<Message> = ({ item }) => (
-    <MessageBubble
-      message={item}
-      onRetry={onRetry}
-      onCopy={onCopy}
-    />
+    <MessageBubble message={item} onRetry={onRetry} onCopy={onCopy} />
   );
 
   const renderFooter = () => {

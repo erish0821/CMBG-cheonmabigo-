@@ -1,12 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { View, Text } from 'react-native';
-import {
-  HomeIcon,
-  ChatIcon,
-  AnalyticsIcon,
-  SettingsIcon,
-} from '../../src/components/ui/Icon';
+import { Text } from 'react-native';
 
 function TabBarIcon({
   name,
@@ -17,21 +11,18 @@ function TabBarIcon({
   color: string;
   focused: boolean;
 }) {
-  const iconColor = focused ? 'primary' : 'gray';
-  const size = 'md';
+  const icons = {
+    home: '🏠',
+    chat: '💬',
+    analytics: '📊',
+    settings: '⚙️',
+  };
 
-  switch (name) {
-    case 'home':
-      return <HomeIcon size={size} color={iconColor} />;
-    case 'chat':
-      return <ChatIcon size={size} color={iconColor} />;
-    case 'analytics':
-      return <AnalyticsIcon size={size} color={iconColor} />;
-    case 'settings':
-      return <SettingsIcon size={size} color={iconColor} />;
-    default:
-      return <HomeIcon size={size} color={iconColor} />;
-  }
+  return (
+    <Text style={{ color: focused ? '#7c3aed' : '#6b7280', fontSize: 20 }}>
+      {icons[name]}
+    </Text>
+  );
 }
 
 export default function TabLayout() {
@@ -63,6 +54,16 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon name="home" color={color} focused={focused} />
           ),
+          tabBarIconStyle: { display: 'none' },
+          tabBarLabel: ({ focused }) => (
+            <Text style={{
+              color: focused ? '#7c3aed' : '#6b7280',
+              fontSize: 12,
+              marginTop: -15
+            }}>
+              🏠 홈
+            </Text>
+          ),
         }}
       />
       <Tabs.Screen
@@ -71,6 +72,16 @@ export default function TabLayout() {
           title: 'AI 상담',
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon name="chat" color={color} focused={focused} />
+          ),
+          tabBarIconStyle: { display: 'none' },
+          tabBarLabel: ({ focused }) => (
+            <Text style={{
+              color: focused ? '#7c3aed' : '#6b7280',
+              fontSize: 12,
+              marginTop: -15
+            }}>
+              💬 AI 상담
+            </Text>
           ),
         }}
       />
@@ -81,6 +92,16 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon name="analytics" color={color} focused={focused} />
           ),
+          tabBarIconStyle: { display: 'none' },
+          tabBarLabel: ({ focused }) => (
+            <Text style={{
+              color: focused ? '#7c3aed' : '#6b7280',
+              fontSize: 12,
+              marginTop: -15
+            }}>
+              📊 분석
+            </Text>
+          ),
         }}
       />
       <Tabs.Screen
@@ -89,6 +110,16 @@ export default function TabLayout() {
           title: '설정',
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon name="settings" color={color} focused={focused} />
+          ),
+          tabBarIconStyle: { display: 'none' },
+          tabBarLabel: ({ focused }) => (
+            <Text style={{
+              color: focused ? '#7c3aed' : '#6b7280',
+              fontSize: 12,
+              marginTop: -15
+            }}>
+              ⚙️ 설정
+            </Text>
           ),
         }}
       />

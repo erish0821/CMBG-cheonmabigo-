@@ -1,5 +1,8 @@
-// 네비게이션 타입 내보내기
+// 타입 내보내기
 export * from './navigation';
+export * from './chat';
+export * from './ai';
+export * from './voice';
 
 // 공통 타입 정의
 export interface BaseEntity {

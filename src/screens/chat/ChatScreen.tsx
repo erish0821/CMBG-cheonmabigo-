@@ -50,10 +50,21 @@ export function ChatScreen() {
     console.log('Refreshing chat history...');
   }, []);
 
-  const handleVoicePress = useCallback(() => {
-    // 음성 입력 기능은 다음 단계에서 구현
-    Alert.alert('음성 입력', '음성 입력 기능은 곧 추가될 예정입니다.');
+  const handleVoicePress = useCallback(async () => {
+    const { voiceState, startVoiceInput } = useChatStore.getState();
+
+    if (voiceState.isRecording) {
+      await useChatStore.getState().stopVoiceInput();
+    } else {
+      await startVoiceInput();
+    }
   }, []);
+
+  const handleVoiceResult = useCallback((text: string) => {
+    // 음성 인식 결과를 자동으로 전송
+    setInputText(text);
+    sendMessage(text);
+  }, [sendMessage, setInputText]);
 
   return (
     <SafeAreaView className="flex-1 bg-white">

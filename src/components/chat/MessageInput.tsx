@@ -10,6 +10,7 @@ import {
   Animated,
 } from 'react-native';
 import { MessageInputProps } from '../../types/chat';
+import { VoiceInput } from '../voice/VoiceInput';
 
 // 간단한 아이콘 컴포넌트들 (웹 호환성 개선)
 const SendIcon = ({ color = '#7C3AED', size = 24 }) => (
@@ -95,20 +96,22 @@ export function MessageInput({
     >
       <View className="border-t border-gray-100 bg-white px-4 py-3">
         <View className="flex-row items-end space-x-3">
-          {/* 음성 입력 버튼 */}
+          {/* 음성 입력 컴포넌트 */}
           {onVoicePress && (
-            <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-              <Pressable
-                onPress={handleVoicePress}
-                className="h-11 w-11 items-center justify-center rounded-full bg-gray-100"
-                disabled={isLoading}
-              >
-                <VoiceIcon
-                  size={20}
-                  color={isLoading ? '#D1D5DB' : '#6B7280'}
-                />
-              </Pressable>
-            </Animated.View>
+            <VoiceInput
+              onSpeechResult={(text) => {
+                onChangeText(text);
+                if (text.trim()) {
+                  setTimeout(() => handleSend(), 100);
+                }
+              }}
+              onError={(error) => {
+                console.error('Voice input error:', error);
+              }}
+              size="small"
+              disabled={isLoading}
+              placeholder="음성으로 지출 내역을 말씀해주세요"
+            />
           )}
 
           {/* 텍스트 입력 영역 */}

@@ -182,5 +182,9 @@ dmypy.json
 *.h5
 *.hdf5
 checkpoints/
-models/
+# models/ - commented out to include backend/src/models and python-llm-server/models
 *.onnx
+
+# Include important models directories
+!backend/src/models/
+!python-llm-server/models/

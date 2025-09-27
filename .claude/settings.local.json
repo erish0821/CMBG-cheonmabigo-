@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebSearch",
+      "WebSearch",
+      "Bash(npx create-expo-app:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run lint:*)",
+      "Bash(tree:*)",
+      "Bash(npx tailwindcss:*)",
+      "Bash(npm run start:*)",
+      "Bash(npx expo install:*)",
+      "Bash(lsof:*)",
+      "Bash(npm ls:*)",
+      "Bash(npx expo start:*)",
+      "Bash(pkill:*)",
+      "Bash(xargs kill:*)",
+      "Bash(npx expo r:*)",
+      "Bash(pgrep:*)",
+      "Bash(kill:*)",
+      "Bash(curl:*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_type",
+      "mcp__playwright__browser_press_key",
+      "mcp__playwright__browser_evaluate",
+      "Bash(npm uninstall:*)",
+      "Bash(xargs -r kill -9)",
+      "Bash(awk:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "Bash(git init:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

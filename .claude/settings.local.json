@@ -51,7 +51,8 @@
       "mcp__playwright__browser_network_requests",
       "mcp__playwright__browser_fill_form",
       "Read(//tmp/cheonma-branch/**)",
-      "Bash(npm run web:*)"
+      "Bash(npm run web:*)",
+      "Bash(/home/gjfepfm/Android/Sdk/platform-tools/adb devices)"
     ],
     "deny": [],
     "ask": []

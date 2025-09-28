@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
+import { Budget } from '../models/Budget';
 import { ApiResponse, AuthRequest } from '../types';
 // import { cacheService } from '../services/cache';
 
@@ -383,6 +384,49 @@ export class AuthController {
 
       // 사용자 정보 업데이트
       const updatedUser = await User.query().patchAndFetchById(userId!, updateData);
+
+      // preferences에 예산 정보가 있으면 budgets 테이블에 실제 예산 생성
+      if (preferences && preferences.budget && preferences.budget.monthlyBudget) {
+        console.log('예산 정보 발견, budgets 테이블에 레코드 생성:', preferences.budget.monthlyBudget);
+
+        // 기존 예산이 있는지 확인
+        const existingBudget = await Budget.query()
+          .where('user_id', userId!.toString())
+          .where('category', 'TOTAL')
+          .where('period', 'monthly')
+          .first();
+
+        const now = new Date();
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+        if (existingBudget) {
+          // 기존 예산 업데이트
+          await Budget.query()
+            .patchAndFetchById(existingBudget.id, {
+              amount: parseInt(preferences.budget.monthlyBudget),
+              start_date: now.toISOString().split('T')[0],
+              end_date: endOfMonth.toISOString().split('T')[0],
+              is_active: true,
+            });
+          console.log('기존 예산 업데이트됨:', existingBudget.id);
+        } else {
+          // 새 예산 생성
+          const newBudget = await Budget.query().insert({
+            user_id: userId!.toString(),
+            name: '월 총 예산',
+            amount: parseInt(preferences.budget.monthlyBudget),
+            category: 'TOTAL',
+            period: 'monthly',
+            start_date: now.toISOString().split('T')[0],
+            end_date: endOfMonth.toISOString().split('T')[0],
+            alert_threshold: 80,
+            is_active: true,
+            auto_renew: true,
+            description: '월 전체 지출 예산',
+          });
+          console.log('새 예산 생성됨:', newBudget.id);
+        }
+      }
 
       // 비밀번호 제거하고 응답
       const { password: _, ...userWithoutPassword } = updatedUser;

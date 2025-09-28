@@ -93,7 +93,7 @@ export class AnalyticsService {
     const summary = await this.generateSummary(transactions);
     const monthlyTrends = this.generateMonthlyTrends(transactions);
     const weeklyPatterns = this.generateWeeklyPatterns(transactions);
-    const budgetAnalysis = this.generateBudgetAnalysis(transactions);
+    const budgetAnalysis = await this.generateBudgetAnalysis(transactions);
     const categoryTrends = this.generateCategoryTrends(transactions);
     const insights = this.generateInsights(transactions, summary, budgetAnalysis, categoryTrends);
 
@@ -301,8 +301,42 @@ export class AnalyticsService {
   /**
    * 예산 분석
    */
-  private static generateBudgetAnalysis(transactions: Transaction[]): BudgetAnalysis {
-    const totalBudget = 1660000; // 기본 예산 (나중에 사용자 설정으로 변경)
+  private static async generateBudgetAnalysis(transactions: Transaction[]): Promise<BudgetAnalysis> {
+    // 사용자의 활성 예산 정보 가져오기
+    let totalBudget = 0;
+
+    try {
+      // 현재 로그인한 사용자 정보 가져오기
+      const { useAuthStore } = await import('../../stores/authStore');
+      const user = useAuthStore.getState().user;
+
+      if (!user) {
+        throw new Error('사용자 정보를 찾을 수 없습니다.');
+      }
+
+      const { useBudgetStore } = await import('../../stores/budgetStore');
+      const budgetStore = useBudgetStore.getState();
+
+      // 예산 데이터가 없으면 동적으로 로드 (홈/분석 탭과 동일한 로직)
+      if (!budgetStore.budgetSummary) {
+        await budgetStore.updateBudgetSpending(user.id);
+        await budgetStore.loadBudgetSummary(user.id);
+      }
+
+      const budgetSummary = useBudgetStore.getState().budgetSummary;
+
+      if (budgetSummary && budgetSummary.totalBudget > 0) {
+        totalBudget = budgetSummary.totalBudget;
+        console.log('사용자 예산 정보 로드됨:', totalBudget);
+      } else {
+        // 예산이 설정되지 않은 경우, 기본 예산을 생성하거나 0으로 설정
+        console.warn('사용자 예산이 설정되지 않았습니다.');
+        totalBudget = 0; // 예산이 없으면 0으로 설정
+      }
+    } catch (error) {
+      console.error('예산 정보를 불러올 수 없습니다:', error);
+      totalBudget = 0; // 오류 시 0으로 설정
+    }
 
     const now = new Date();
     const currentMonth = now.getMonth();
@@ -317,8 +351,10 @@ export class AnalyticsService {
     });
 
     const spentAmount = currentMonthExpenses.reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
-    const remainingAmount = totalBudget - spentAmount;
-    const usagePercentage = (spentAmount / totalBudget) * 100;
+    const remainingAmount = Math.max(0, totalBudget - spentAmount);
+
+    // NaN 방지: totalBudget이 0이면 usagePercentage도 0으로 설정
+    const usagePercentage = totalBudget > 0 ? (spentAmount / totalBudget) * 100 : 0;
 
     // 이번 달 남은 일수 계산
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
@@ -415,51 +451,68 @@ export class AnalyticsService {
   ): AIInsight[] {
     const insights: AIInsight[] = [];
 
-    // 1. 예산 관련 인사이트
-    if (budgetAnalysis.usagePercentage > 90) {
-      insights.push({
-        id: 'budget-warning',
-        type: 'warning',
-        title: '예산 초과 위험',
-        description: `예산의 ${budgetAnalysis.usagePercentage.toFixed(0)}%를 사용했습니다. 남은 기간 동안 일 평균 ₩${Math.round(budgetAnalysis.recommendedDailySpending).toLocaleString()} 이하로 지출하세요.`,
-        actionable: true,
-        priority: 5,
-        data: { budgetUsage: budgetAnalysis.usagePercentage }
-      });
-    } else if (budgetAnalysis.usagePercentage < 50 && budgetAnalysis.daysRemaining < 10) {
-      insights.push({
-        id: 'budget-achievement',
-        type: 'achievement',
-        title: '절약 성공! 🎉',
-        description: `예산의 ${budgetAnalysis.usagePercentage.toFixed(0)}%만 사용하여 ₩${budgetAnalysis.remainingAmount.toLocaleString()}를 절약했습니다!`,
-        actionable: false,
-        priority: 3,
-      });
+    // 1. 예산 관련 인사이트 (조건 완화)
+    if (budgetAnalysis.totalBudget > 0) {
+      if (budgetAnalysis.usagePercentage > 90) {
+        insights.push({
+          id: 'budget-warning',
+          type: 'warning',
+          title: '예산 초과 위험',
+          description: `예산의 ${budgetAnalysis.usagePercentage.toFixed(0)}%를 사용했습니다. 남은 기간 동안 일 평균 ₩${Math.round(budgetAnalysis.recommendedDailySpending).toLocaleString()} 이하로 지출하세요.`,
+          actionable: true,
+          priority: 5,
+          data: { budgetUsage: budgetAnalysis.usagePercentage }
+        });
+      } else if (budgetAnalysis.usagePercentage < 70) {
+        // 조건을 50%에서 70%로 완화
+        insights.push({
+          id: 'budget-achievement',
+          type: 'achievement',
+          title: '절약 성공! 🎉',
+          description: `예산의 ${budgetAnalysis.usagePercentage.toFixed(0)}%만 사용하여 ₩${budgetAnalysis.remainingAmount.toLocaleString()}를 절약했습니다!`,
+          actionable: false,
+          priority: 3,
+        });
+      } else if (budgetAnalysis.usagePercentage >= 70 && budgetAnalysis.usagePercentage <= 90) {
+        // 중간 구간 인사이트 추가
+        insights.push({
+          id: 'budget-on-track',
+          type: 'tip',
+          title: '예산 관리 양호 👍',
+          description: `예산의 ${budgetAnalysis.usagePercentage.toFixed(0)}%를 사용 중입니다. 현재 페이스로 진행하면 월말까지 ₩${budgetAnalysis.remainingAmount.toLocaleString()} 여유가 있을 것 같아요.`,
+          actionable: false,
+          priority: 2,
+        });
+      }
     }
 
-    // 2. 카테고리 변화 인사이트
+    // 2. 카테고리 변화 인사이트 (조건 완화)
     categoryTrends.forEach(trend => {
-      if (Math.abs(trend.changePercentage) > 20 && trend.currentMonth > 10000) {
+      if (Math.abs(trend.changePercentage) > 10 && trend.currentMonth > 5000) {
+        // 변화율 20% → 10%, 최소 금액 10,000 → 5,000으로 완화
         const categoryInfo = CATEGORIES[trend.category];
-        const direction = trend.trend === 'up' ? '증가' : '감소';
-        const emoji = trend.trend === 'up' ? '📈' : '📉';
+        if (categoryInfo) {
+          const direction = trend.trend === 'up' ? '증가' : '감소';
+          const emoji = trend.trend === 'up' ? '📈' : '📉';
 
-        insights.push({
-          id: `category-trend-${trend.category}`,
-          type: trend.trend === 'up' ? 'warning' : 'achievement',
-          title: `${categoryInfo.name} 지출 ${direction} ${emoji}`,
-          description: `지난달 대비 ${Math.abs(trend.changePercentage).toFixed(0)}% ${direction}했습니다 (₩${trend.currentMonth.toLocaleString()})`,
-          actionable: trend.trend === 'up',
-          priority: trend.trend === 'up' ? 4 : 2,
-          category: trend.category,
-          data: { changePercentage: trend.changePercentage }
-        });
+          insights.push({
+            id: `category-trend-${trend.category}`,
+            type: trend.trend === 'up' ? 'warning' : 'achievement',
+            title: `${categoryInfo.name} 지출 ${direction} ${emoji}`,
+            description: `지난달 대비 ${Math.abs(trend.changePercentage).toFixed(0)}% ${direction}했습니다 (₩${trend.currentMonth.toLocaleString()})`,
+            actionable: trend.trend === 'up',
+            priority: trend.trend === 'up' ? 4 : 2,
+            category: trend.category,
+            data: { changePercentage: trend.changePercentage }
+          });
+        }
       }
     });
 
-    // 3. 저축 목표 관련 인사이트
+    // 3. 저축 목표 관련 인사이트 (조건 완화)
     const savingsRate = summary.totalIncome > 0 ? (summary.netAmount / summary.totalIncome) * 100 : 0;
-    if (savingsRate > 20) {
+    if (savingsRate > 15) {
+      // 20% → 15%로 완화
       insights.push({
         id: 'savings-achievement',
         type: 'achievement',
@@ -469,7 +522,8 @@ export class AnalyticsService {
         priority: 3,
         data: { savingsRate }
       });
-    } else if (savingsRate < 10) {
+    } else if (savingsRate < 15) {
+      // 10% → 15%로 완화 (더 많은 사용자에게 팁 제공)
       insights.push({
         id: 'savings-tip',
         type: 'tip',
@@ -485,16 +539,18 @@ export class AnalyticsService {
     const topCategory = summary.categoryBreakdown[0];
     if (topCategory && topCategory.percentage > 40) {
       const categoryInfo = CATEGORIES[topCategory.category];
-      insights.push({
-        id: 'top-category-warning',
-        type: 'warning',
-        title: `${categoryInfo.name} 지출 집중`,
-        description: `전체 지출의 ${topCategory.percentage.toFixed(0)}%가 ${categoryInfo.name}입니다. 다양한 분야의 지출 균형을 고려해보세요.`,
-        actionable: true,
-        priority: 3,
-        category: topCategory.category,
-        data: { percentage: topCategory.percentage }
-      });
+      if (categoryInfo) {
+        insights.push({
+          id: 'top-category-warning',
+          type: 'warning',
+          title: `${categoryInfo.name} 지출 집중`,
+          description: `전체 지출의 ${topCategory.percentage.toFixed(0)}%가 ${categoryInfo.name}입니다. 다양한 분야의 지출 균형을 고려해보세요.`,
+          actionable: true,
+          priority: 3,
+          category: topCategory.category,
+          data: { percentage: topCategory.percentage }
+        });
+      }
     }
 
     // 5. 거래 빈도 분석
@@ -507,6 +563,54 @@ export class AnalyticsService {
         actionable: true,
         priority: 2,
         data: { transactionCount: summary.transactionCount }
+      });
+    }
+
+    // 6. 실제 데이터 기반 기본 인사이트 (항상 표시)
+    if (summary.totalSpent > 0) {
+      // 일평균 지출 분석
+      const daysInMonth = new Date().getDate();
+      const dailyAverage = summary.totalSpent / daysInMonth;
+
+      insights.push({
+        id: 'daily-spending-analysis',
+        type: 'tip',
+        title: '일평균 지출 분석',
+        description: `이번 달 일평균 ₩${Math.round(dailyAverage).toLocaleString()}을 지출하고 있습니다. 이 페이스로 진행하면 월말 예상 지출은 ₩${Math.round(dailyAverage * 30).toLocaleString()}입니다.`,
+        actionable: false,
+        priority: 4,
+        data: { dailyAverage, projectedMonthly: dailyAverage * 30 }
+      });
+    }
+
+    // 7. 카테고리별 지출 현황 (실제 데이터)
+    if (summary.categoryBreakdown.length > 0) {
+      const topCategory = summary.categoryBreakdown[0];
+      const categoryInfo = CATEGORIES[topCategory.category];
+      if (categoryInfo) {
+        insights.push({
+          id: 'top-spending-category',
+          type: 'tip',
+          title: `${categoryInfo.name}에 가장 많이 지출`,
+          description: `이번 달 ${categoryInfo.name}에 ₩${topCategory.amount.toLocaleString()}(${topCategory.percentage.toFixed(0)}%)를 지출했습니다. ${topCategory.transactionCount}번의 거래가 있었어요.`,
+          actionable: true,
+          priority: 3,
+          category: topCategory.category,
+          data: { amount: topCategory.amount, percentage: topCategory.percentage }
+        });
+      }
+    }
+
+    // 8. 순자산 변화 분석 (수입이 없는 경우)
+    if (summary.totalIncome === 0 && summary.totalSpent > 0) {
+      insights.push({
+        id: 'income-tracking-tip',
+        type: 'tip',
+        title: '수입도 기록해보세요',
+        description: `이번 달 지출만 ₩${summary.totalSpent.toLocaleString()} 기록되었습니다. 급여나 용돈 등 수입도 함께 기록하면 더 정확한 가계 분석이 가능해요.`,
+        actionable: true,
+        priority: 3,
+        data: { totalSpent: summary.totalSpent }
       });
     }
 

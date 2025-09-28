@@ -62,9 +62,13 @@ export function MessageInput({
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handleSend = () => {
+    console.log('🎯 handleSend 호출됨:', { value: value.trim(), isLoading });
     if (value.trim() && !isLoading) {
+      console.log('✅ onSend 호출 시도');
       onSend();
       Keyboard.dismiss();
+    } else {
+      console.log('❌ onSend 호출 안됨 - 조건 불만족');
     }
   };
 

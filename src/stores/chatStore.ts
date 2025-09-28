@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { Message, ChatState } from '../types/chat';
 import { VoiceState } from '../types/voice';
-import { Transaction, ParsedTransaction, PaymentMethod } from '../types/transaction';
+import { Transaction, ParsedTransaction, PaymentMethod, CategoryType } from '../types/transaction';
 import { pythonLLMService } from '../services/ai/PythonLLMService';
 import { voiceService } from '../services/voice/VoiceService';
 import { transactionStorage } from '../services/storage/TransactionStorage';
@@ -119,6 +119,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   sendMessage: async content => {
+    console.log('🚀 sendMessage 호출됨:', content);
     const { addMessage, setIsLoading, setIsTyping, setError, processTransaction } = get();
 
     try {
@@ -135,8 +136,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       setIsTyping(true);
       setError(undefined);
 
-      // 메시지 타입 감지
-      const isTransactionMessage = NLPParser.parseTransactionText(content) !== null;
+      // 메시지 타입 감지 - 금액이 포함되어 있는지 확인
+      const parsedTransaction = NLPParser.parseTransactionText(content);
+      const isTransactionMessage = parsedTransaction.amount && parsedTransaction.amount > 0;
       const budgetIntent = BudgetLLMService.detectBudgetIntent(content);
 
       let aiResponse: string;
@@ -180,18 +182,33 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         }
       } else if (isTransactionMessage) {
         try {
+          console.log('거래 메시지로 감지됨:', content);
           // 새로운 거래 처리 시스템 사용
           const transaction = await processTransaction(content);
+          console.log('processTransaction 결과:', transaction);
 
           if (transaction) {
             // 성공적으로 거래가 기록됨
-            const categoryInfo = CATEGORIES[transaction.category];
+            // 백엔드 카테고리명을 CategoryType으로 매핑
+            const categoryMap: Record<string, CategoryType> = {
+              'FOOD_DINING': CategoryType.FOOD,
+              'TRANSPORTATION': CategoryType.TRANSPORT,
+              'ENTERTAINMENT': CategoryType.ENTERTAINMENT,
+              'SHOPPING': CategoryType.SHOPPING,
+              'HEALTHCARE': CategoryType.HEALTHCARE,
+              'EDUCATION': CategoryType.EDUCATION,
+              'UTILITIES': CategoryType.UTILITIES,
+              'HOUSING': CategoryType.HOUSING,
+              'INCOME': CategoryType.INCOME,
+            };
+
+            const mappedCategory = categoryMap[transaction.category] || CategoryType.OTHER;
+            const categoryInfo = CATEGORIES[mappedCategory] || CATEGORIES.OTHER;
             aiResponse = `✅ 거래를 기록했습니다!\n\n` +
               `💰 ${transaction.isIncome ? '+' : '-'}${Math.abs(transaction.amount).toLocaleString()}원\n` +
               `${categoryInfo.icon} ${categoryInfo.name}${transaction.subcategory ? ` > ${transaction.subcategory}` : ''}\n` +
-              `📝 ${transaction.description}\n` +
-              `${transaction.location ? `📍 ${transaction.location}\n` : ''}` +
-              `🤖 AI 분류 신뢰도: ${Math.round(transaction.confidence * 100)}%`;
+              `📝 ${transaction.description}` +
+              `${transaction.location ? `\n📍 ${transaction.location}` : ''}`;
 
             messageType = 'transaction';
             messageMetadata = {
@@ -288,18 +305,41 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         return null;
       }
 
-      // 2단계: AI 분류 (선택적)
-      let aiResult: { category: string; confidence: number } | undefined;
+      // 2단계: AI 거래 파싱 (구조화된 응답 사용)
+      let aiResult: { category: string; confidence: number; description?: string; amount?: number; paymentMethod?: string } | undefined;
+
       try {
+        console.log('AI 거래 파싱 시작 - /transaction/parse 엔드포인트 사용');
         const aiResponse = await pythonLLMService.parseTransaction(originalText);
         if (aiResponse && aiResponse.category) {
-          aiResult = {
-            category: aiResponse.category,
-            confidence: 0.7, // AI 응답에서 confidence가 없을 수 있으므로 기본값 사용
+          // 카테고리 매핑 (백엔드 한국어 -> 프론트엔드 영어)
+          const categoryMapping: Record<string, string> = {
+            '식비': 'FOOD_DINING',
+            '교통비': 'TRANSPORTATION',
+            '쇼핑': 'SHOPPING',
+            '문화생활': 'ENTERTAINMENT',
+            '의료비': 'HEALTHCARE',
+            '교육비': 'EDUCATION',
+            '기타': 'OTHER',
+            '주거비': 'HOUSING',
+            '공과금': 'UTILITIES',
+            '수입': 'INCOME'
           };
+
+          const mappedCategory = categoryMapping[aiResponse.category] || 'OTHER';
+
+          aiResult = {
+            category: mappedCategory,
+            confidence: 0.8, // AI 파싱의 신뢰도
+            description: aiResponse.description,
+            amount: aiResponse.amount,
+            paymentMethod: aiResponse.paymentMethod,
+          };
+
+          console.log('AI 거래 파싱 성공:', aiResult);
         }
       } catch (aiError) {
-        console.warn('AI 분류 실패, 룰 베이스 분류로 진행:', aiError);
+        console.warn('AI 거래 파싱 실패, 룰 베이스 분류로 진행:', aiError);
       }
 
       // 3단계: 종합 분류
@@ -309,20 +349,27 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         aiResult
       );
 
-      // 4단계: 최종 거래 데이터 생성
+      // 4단계: 최종 거래 데이터 생성 (AI 파싱 결과 우선 사용)
+      // 소득 여부 판단: AI 결과가 '수입' 카테고리이거나 NLP 파서가 소득으로 판단한 경우
+      const isIncomeFromAI = aiResult?.category === 'INCOME';
+      const isIncomeFromNLP = parsedData.isIncome || false;
+      const finalIsIncome = isIncomeFromAI || isIncomeFromNLP;
+
       const finalParsedData: ParsedTransaction = {
-        amount: parsedData.amount || 0,
-        description: parsedData.description || '거래',
+        amount: aiResult?.amount || parsedData.amount || 0,
+        description: aiResult?.description || parsedData.description || '거래',
         paymentMethod: parsedData.paymentMethod || PaymentMethod.CARD,
-        isIncome: parsedData.isIncome || false,
-        category: classificationResult.category,
+        isIncome: finalIsIncome,
+        category: finalIsIncome ? CategoryType.INCOME : classificationResult.category,
         subcategory: classificationResult.subcategory,
-        confidence: classificationResult.confidence,
+        confidence: aiResult ? Math.max(aiResult.confidence, classificationResult.confidence) : classificationResult.confidence,
         originalText,
         date: parsedData.date,
         location: parsedData.location,
         tags: parsedData.tags || [],
       };
+
+      console.log('최종 거래 데이터:', finalParsedData);
 
       // 5단계: 거래 저장
       const transaction = await get().confirmTransaction(finalParsedData);
@@ -352,6 +399,31 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         aiParsed: true,
         userModified: false,
       });
+
+      // 거래 저장 후 예산 정보 업데이트
+      try {
+        console.log('거래 저장 완료, 예산 정보 업데이트 시작...');
+        const { useAuthStore } = await import('./authStore');
+        const { useBudgetStore } = await import('./budgetStore');
+        const { user } = useAuthStore.getState();
+
+        if (user?.id) {
+          console.log('사용자 ID 확인됨:', user.id);
+          const { updateBudgetSpending, loadBudgetSummary } = useBudgetStore.getState();
+
+          console.log('예산 지출 내역 업데이트 중...');
+          await updateBudgetSpending(user.id);
+
+          console.log('예산 요약 정보 로드 중...');
+          await loadBudgetSummary(user.id);
+
+          console.log('거래 저장 후 예산 정보 업데이트 완료');
+        } else {
+          console.warn('사용자 정보가 없음, 예산 업데이트 건너뜀');
+        }
+      } catch (budgetError) {
+        console.error('예산 정보 업데이트 실패:', budgetError);
+      }
 
       // 학습을 위해 분류 피드백 저장 (향후 구현)
       await ClassifierService.learnFromFeedback(

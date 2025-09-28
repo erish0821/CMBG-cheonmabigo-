@@ -43,7 +43,13 @@
       "mcp__playwright__browser_take_screenshot",
       "Bash(npx ts-node:*)",
       "mcp__playwright__browser_handle_dialog",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(echo $ANDROID_HOME)",
+      "Bash(find:*)",
+      "Bash(sqlite3:*)",
+      "Bash(npm run dev:*)",
+      "mcp__playwright__browser_network_requests",
+      "mcp__playwright__browser_fill_form"
     ],
     "deny": [],
     "ask": []

@@ -40,6 +40,8 @@ interface HealthResponse {
 class PythonLLMService {
   private client: AxiosInstance;
   private baseUrl: string;
+  private maxRetries: number = 3;
+  private retryDelay: number = 1000; // 1초
 
   constructor() {
     // 개발/프로덕션 환경에 따른 URL 설정
@@ -49,10 +51,12 @@ class PythonLLMService {
 
     this.client = axios.create({
       baseURL: this.baseUrl,
-      timeout: 30000, // 30초 타임아웃
+      timeout: 60000, // 60초 타임아웃 (AI 모델 응답 시간 고려)
       headers: {
         'Content-Type': 'application/json',
       },
+      // 재시도 설정
+      validateStatus: (status) => status < 500, // 5xx 에러만 재시도
     });
 
     // 요청/응답 인터셉터 설정
@@ -86,14 +90,54 @@ class PythonLLMService {
   }
 
   /**
+   * 재시도 로직이 포함된 안전한 요청 실행
+   */
+  private async executeWithRetry<T>(
+    operation: () => Promise<AxiosResponse<T>>,
+    operationName: string
+  ): Promise<AxiosResponse<T>> {
+    let lastError: any;
+
+    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+      try {
+        console.log(`[PythonLLM] ${operationName} 시도 ${attempt}/${this.maxRetries}`);
+        const response = await operation();
+
+        if (attempt > 1) {
+          console.log(`[PythonLLM] ${operationName} 재시도 성공 (${attempt}번째 시도)`);
+        }
+
+        return response;
+      } catch (error: any) {
+        lastError = error;
+
+        console.warn(`[PythonLLM] ${operationName} 시도 ${attempt} 실패:`, error.message);
+
+        // 마지막 시도가 아니면 재시도
+        if (attempt < this.maxRetries) {
+          // 지수적 백오프: 1초, 2초, 4초
+          const delay = this.retryDelay * Math.pow(2, attempt - 1);
+          console.log(`[PythonLLM] ${delay}ms 후 재시도...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    throw lastError;
+  }
+
+  /**
    * 서버 상태 확인
    */
   async checkHealth(): Promise<HealthResponse> {
     try {
-      const response: AxiosResponse<HealthResponse> = await this.client.get('/health');
+      const response = await this.executeWithRetry(
+        () => this.client.get<HealthResponse>('/health'),
+        'Health check'
+      );
       return response.data;
     } catch (error) {
-      console.error('[PythonLLM] Health check 실패:', error);
+      console.error('[PythonLLM] Health check 최종 실패:', error);
       throw new Error('서버 연결에 실패했습니다.');
     }
   }
@@ -115,7 +159,10 @@ class PythonLLMService {
         temperature,
       };
 
-      const response: AxiosResponse<ChatResponse> = await this.client.post('/chat', request);
+      const response = await this.executeWithRetry(
+        () => this.client.post<ChatResponse>('/chat', request),
+        'Chat response generation'
+      );
 
       if (response.data.status === 'success') {
         return response.data.response;
@@ -123,7 +170,7 @@ class PythonLLMService {
         throw new Error('AI 응답 생성에 실패했습니다.');
       }
     } catch (error: any) {
-      console.error('[PythonLLM] 채팅 응답 생성 실패:', error);
+      console.error('[PythonLLM] 채팅 응답 생성 최종 실패:', error);
 
       if (error.response?.status === 503) {
         throw new Error('AI 모델이 로드되지 않았습니다. 잠시 후 다시 시도해주세요.');
@@ -147,9 +194,9 @@ class PythonLLMService {
     try {
       const request: TransactionRequest = { text };
 
-      const response: AxiosResponse<TransactionResponse> = await this.client.post(
-        '/transaction/parse',
-        request
+      const response = await this.executeWithRetry(
+        () => this.client.post<TransactionResponse>('/transaction/parse', request),
+        'Transaction parsing'
       );
 
       if (response.data.status === 'success') {
@@ -163,7 +210,7 @@ class PythonLLMService {
         throw new Error('거래 내용 파싱에 실패했습니다.');
       }
     } catch (error: any) {
-      console.error('[PythonLLM] 거래 파싱 실패:', error);
+      console.error('[PythonLLM] 거래 파싱 최종 실패:', error);
 
       if (error.response?.status === 503) {
         throw new Error('AI 모델이 로드되지 않았습니다. 잠시 후 다시 시도해주세요.');
@@ -171,6 +218,7 @@ class PythonLLMService {
         throw new Error('서버에 연결할 수 없습니다. 네트워크를 확인해주세요.');
       } else {
         // 파싱 실패 시 기본값 반환
+        console.warn('[PythonLLM] 파싱 실패로 기본값 반환:', text);
         return {
           amount: 0,
           description: text,

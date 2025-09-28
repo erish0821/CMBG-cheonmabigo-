@@ -36,6 +36,20 @@ router.get('/', BudgetController.getBudgets);
 
 /**
  * @swagger
+ * /api/budgets/summary:
+ *   get:
+ *     summary: 예산 요약 정보 조회
+ *     tags: [Budgets]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: 예산 요약 정보 조회 성공
+ */
+router.get('/summary', BudgetController.getBudgetSummary);
+
+/**
+ * @swagger
  * /api/budgets/{id}:
  *   get:
  *     summary: 특정 예산 조회

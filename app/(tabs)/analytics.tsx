@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, ScrollView, TouchableOpacity, RefreshControl, Text } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   Screen,
   Container,
@@ -28,25 +29,45 @@ import {
   WeeklyPatternChart,
   BudgetProgressChart,
   InsightCard,
+  DailyCalendarChart,
 } from '../../src/components/charts';
 import { useRouter } from 'expo-router';
+import { useBudgetStore } from '../../src/stores/budgetStore';
+import { useAuthStore } from '../../src/stores/authStore';
 
 export default function AnalyticsScreen() {
   const router = useRouter();
-  const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('month');
+  const { user } = useAuthStore();
+  const { loadBudgetSummary, updateBudgetSpending } = useBudgetStore();
+  const [selectedPeriod, setSelectedPeriod] = useState<'day' | 'week' | 'month'>('month');
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [dailyData, setDailyData] = useState<Array<{
+    date: Date;
+    income: number;
+    expense: number;
+    netAmount: number;
+    transactionCount: number;
+  }>>([]);
 
   const periods = [
+    { key: 'day' as const, label: '일일' },
     { key: 'week' as const, label: '주간' },
     { key: 'month' as const, label: '월간' },
-    { key: 'year' as const, label: '연간' },
   ];
 
   // 데이터 로드 함수
-  const loadAnalyticsData = async (forceRefresh = false) => {
+  const loadAnalyticsData = useCallback(async (forceRefresh = false) => {
     try {
+      // 사용자 예산 데이터 로드 (홈 탭과 동일하게)
+      if (user?.id) {
+        await updateBudgetSpending(user.id);
+        await loadBudgetSummary(user.id);
+      }
+
+      // 분석 데이터 로드
       const data = await AnalyticsService.getAnalyticsData(forceRefresh);
       setAnalyticsData(data);
     } catch (error) {
@@ -55,18 +76,103 @@ export default function AnalyticsScreen() {
       setIsLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [user?.id, loadBudgetSummary, updateBudgetSpending]);
 
   // 새로고침 핸들러
-  const onRefresh = () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
     loadAnalyticsData(true);
+  }, [loadAnalyticsData]);
+
+  // 일일 데이터 생성 (실제 거래 데이터 기반)
+  const generateDailyData = async () => {
+    const dailyData: Array<{
+      date: Date;
+      income: number;
+      expense: number;
+      netAmount: number;
+      transactionCount: number;
+    }> = [];
+
+    try {
+      const { transactionStorage } = await import('../../src/services/storage/TransactionStorage');
+      const transactions = await transactionStorage.getAllTransactions();
+
+      // 현재 달의 모든 날짜에 대해 데이터 생성
+      const now = new Date();
+      const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+      // 날짜별로 거래 데이터 그룹화
+      const dailyTransactions = new Map<string, any[]>();
+
+      transactions.forEach(transaction => {
+        const txDate = new Date(transaction.date);
+        if (txDate >= currentMonth && txDate < nextMonth) {
+          const dateKey = txDate.toISOString().split('T')[0];
+          if (!dailyTransactions.has(dateKey)) {
+            dailyTransactions.set(dateKey, []);
+          }
+          dailyTransactions.get(dateKey)!.push(transaction);
+        }
+      });
+
+      // 각 날짜별 데이터 계산
+      for (let date = new Date(currentMonth); date < nextMonth; date.setDate(date.getDate() + 1)) {
+        const dateKey = date.toISOString().split('T')[0];
+        const dayTransactions = dailyTransactions.get(dateKey) || [];
+
+        if (dayTransactions.length > 0) {
+          const income = dayTransactions
+            .filter(tx => tx.isIncome)
+            .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+
+          const expense = dayTransactions
+            .filter(tx => !tx.isIncome)
+            .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+
+          dailyData.push({
+            date: new Date(date),
+            income,
+            expense,
+            netAmount: income - expense,
+            transactionCount: dayTransactions.length,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('일일 데이터 생성 실패:', error);
+    }
+
+    return dailyData;
   };
 
-  // 초기 데이터 로드
+  // 날짜 선택 핸들러
+  const handleDatePress = (date: Date, dayData: any) => {
+    setSelectedDate(date);
+    if (dayData) {
+      console.log('선택된 날짜:', date.toLocaleDateString('ko-KR'), dayData);
+    }
+  };
+
+  // 화면에 포커스될 때마다 데이터 새로고침 (거래 추가 후 실시간 업데이트를 위해)
+  useFocusEffect(
+    useCallback(() => {
+      console.log('분석 화면 포커스됨, 데이터 새로고침 시작');
+      loadAnalyticsData(true);
+    }, [loadAnalyticsData])
+  );
+
+  // 일일 데이터 로드 (일일 모드일 때만)
   useEffect(() => {
-    loadAnalyticsData();
-  }, []);
+    if (selectedPeriod === 'day') {
+      const loadDailyData = async () => {
+        const data = await generateDailyData();
+        setDailyData(data);
+      };
+      loadDailyData();
+    }
+  }, [selectedPeriod]);
 
   // 로딩 상태
   if (isLoading) {
@@ -154,6 +260,66 @@ export default function AnalyticsScreen() {
           </View>
         </SectionContainer>
 
+        {/* 일일 달력 차트 (일일 모드일 때만 표시) */}
+        {selectedPeriod === 'day' && analyticsData && (
+          <SectionContainer>
+            <H2 className="mb-4">일일 수입/지출 달력</H2>
+            <DailyCalendarChart
+              data={dailyData}
+              selectedDate={selectedDate}
+              onDatePress={handleDatePress}
+            />
+
+            {/* 선택된 날짜 상세 정보 */}
+            {selectedDate && (() => {
+              const selectedDateKey = selectedDate.toISOString().split('T')[0];
+              const dayInfo = dailyData.find(d => d.date.toISOString().split('T')[0] === selectedDateKey);
+
+              return (
+                <Card className="mt-4">
+                  <View className="space-y-3">
+                    <H3>{selectedDate.toLocaleDateString('ko-KR', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      weekday: 'long'
+                    })}</H3>
+                    <View className="flex-row justify-between">
+                      <View className="flex-1">
+                        <BodyText className="text-sm text-gray-600 mb-1">수입</BodyText>
+                        <BodyText className="text-lg font-semibold text-green-600">
+                          +₩{(dayInfo?.income || 0).toLocaleString()}
+                        </BodyText>
+                      </View>
+                      <View className="flex-1">
+                        <BodyText className="text-sm text-gray-600 mb-1">지출</BodyText>
+                        <BodyText className="text-lg font-semibold text-red-600">
+                          -₩{(dayInfo?.expense || 0).toLocaleString()}
+                        </BodyText>
+                      </View>
+                      <View className="flex-1">
+                        <BodyText className="text-sm text-gray-600 mb-1">순액</BodyText>
+                        <BodyText className={`text-lg font-semibold ${
+                          (dayInfo?.netAmount || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {(dayInfo?.netAmount || 0) >= 0 ? '+' : ''}₩{(dayInfo?.netAmount || 0).toLocaleString()}
+                        </BodyText>
+                      </View>
+                    </View>
+                    {dayInfo && (
+                      <View className="pt-2 border-t border-gray-200">
+                        <BodyText className="text-sm text-gray-600">
+                          거래 건수: {dayInfo.transactionCount}건
+                        </BodyText>
+                      </View>
+                    )}
+                  </View>
+                </Card>
+              );
+            })()}
+          </SectionContainer>
+        )}
+
         {/* 예산 진행률 */}
         <SectionContainer>
           <BudgetProgressChart data={budgetAnalysis} />
@@ -220,8 +386,8 @@ export default function AnalyticsScreen() {
           />
         </SectionContainer>
 
-        {/* 월별 트렌드 */}
-        {monthlyTrends.length > 0 && (
+        {/* 월별 트렌드 (월간 모드일 때만 표시) */}
+        {monthlyTrends.length > 0 && selectedPeriod === 'month' && (
           <SectionContainer>
             <SpendingTrendChart
               data={monthlyTrends}
@@ -230,13 +396,15 @@ export default function AnalyticsScreen() {
           </SectionContainer>
         )}
 
-        {/* 요일별 패턴 */}
-        <SectionContainer>
-          <WeeklyPatternChart
-            data={weeklyPatterns}
-            onDayPress={(pattern) => console.log('요일 패턴 클릭:', pattern)}
-          />
-        </SectionContainer>
+        {/* 요일별 패턴 (주간 모드일 때만 표시) */}
+        {selectedPeriod === 'week' && (
+          <SectionContainer>
+            <WeeklyPatternChart
+              data={weeklyPatterns}
+              onDayPress={(pattern) => console.log('요일 패턴 클릭:', pattern)}
+            />
+          </SectionContainer>
+        )}
 
         {/* 카테고리 트렌드 분석 */}
         {categoryTrends.length > 0 && (

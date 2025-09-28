@@ -35,9 +35,6 @@
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
-    "cli": {
-      "appVersionSource": "remote"
-    },
     "plugins": [
       "expo-router"
     ]

@@ -1,4 +1,4 @@
-// 간단한 AI 응답 시스템 (패턴 매칭 기반)
+// Python LLM 서버 기반 AI 응답 시스템
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ExaoneConfig,
@@ -14,16 +14,16 @@ import {
 } from '../../types/ai';
 import { PromptManager } from './PromptManager';
 import { ResponseParser } from './ResponseParser';
+import { pythonLLMService } from './PythonLLMService';
 
 /**
  * LGAI EXAONE 3.5 7.8B 모델 통합 서비스
- * 한국어 특화 개인 재정 관리 AI
+ * Python LLM 서버 기반 한국어 특화 개인 재정 관리 AI
  */
 export class ExaoneService {
   private config: ExaoneConfig;
   private promptManager: PromptManager;
   private responseParser: ResponseParser;
-  private aiResponses: Map<string, string[]> = new Map(); // 미리 정의된 응답 패턴
   private state: AIServiceState;
   private metrics: AIMetrics;
   private cache: Map<string, CachedResponse> = new Map();
@@ -54,9 +54,6 @@ export class ExaoneService {
 
     this.promptManager = new PromptManager();
     this.responseParser = new ResponseParser();
-
-    // 미리 정의된 AI 응답 패턴 초기화
-    this.initializeResponsePatterns();
 
     this.state = {
       isInitialized: false,
@@ -89,14 +86,14 @@ export class ExaoneService {
       // 메트릭 로드
       await this.loadMetrics();
 
-      // 응답 패턴 검증
-      await this.validateResponsePatterns();
+      // Python LLM 서버 연결 확인
+      const isConnected = await pythonLLMService.testConnection();
 
       this.state.isInitialized = true;
-      this.state.modelLoaded = true;
+      this.state.modelLoaded = isConnected;
 
       console.log(
-        'ExaoneService initialized successfully with pattern matching'
+        `ExaoneService initialized successfully. Python LLM Server: ${isConnected ? 'Connected' : 'Disconnected'}`
       );
     } catch (error) {
       console.error('ExaoneService initialization failed:', error);
@@ -104,87 +101,6 @@ export class ExaoneService {
     }
   }
 
-  /**
-   * 미리 정의된 AI 응답 패턴 초기화
-   */
-  private initializeResponsePatterns(): void {
-    // 거래 기록 관련 응답
-    this.aiResponses.set('transaction', [
-      '지출 내역을 기록했습니다! 더 자세한 정보를 알려주시면 정확히 분류해드릴게요.',
-      '거래가 성공적으로 저장되었어요. 이번 달 예산 현황을 확인해보시겠어요?',
-      '지출을 확인했습니다. 카테고리별로 정리해서 보여드릴까요?',
-      '결제 내역이 기록되었습니다. 절약 팁이 필요하시면 언제든 말씀해주세요!',
-    ]);
-
-    // 재정 조언 관련 응답
-    this.aiResponses.set('advice', [
-      '가계 관리의 기본은 수입과 지출을 정확히 파악하는 것입니다. 매일 지출을 기록하고 월별 예산을 세워보세요.',
-      '절약의 시작은 작은 습관부터입니다. 커피 한 잔을 줄이는 것만으로도 월 5만원을 절약할 수 있어요!',
-      '50-30-20 법칙을 추천드려요. 수입의 50%는 필수지출, 30%는 여가비용, 20%는 저축으로 배분해보세요.',
-      '가계부를 작성하면 불필요한 지출을 20% 이상 줄일 수 있다는 연구결과가 있어요. 꾸준히 기록해보세요!',
-    ]);
-
-    // 목표 설정 관련 응답
-    this.aiResponses.set('goal', [
-      '저축 목표를 세우셨군요! 구체적인 금액과 기간을 정하면 달성 확률이 42% 높아져요.',
-      '목표가 있으면 동기부여가 더 쉬워져요. 중간 단계 목표도 함께 설정해보시는 건 어떨까요?',
-      '훌륭한 목표네요! 달성을 위한 월별 계획을 세워드릴까요?',
-      '목표 달성까지 함께 응원하겠습니다! 진행 상황을 정기적으로 체크해보아요.',
-    ]);
-
-    // 분석 관련 응답
-    this.aiResponses.set('analysis', [
-      '지출 패턴을 분석해보니 흥미로운 결과가 나왔어요. 어떤 부분을 자세히 알고 싶으신가요?',
-      '이번 달 지출이 지난 달보다 조금 높아졌네요. 어떤 카테고리에서 늘어났는지 확인해보실까요?',
-      '카페 지출이 꾸준히 증가하고 있어요. 홈카페를 시작해보시는 건 어떨까요?',
-      '외식비가 예산의 25%를 차지하고 있어요. 주 1회만 줄여도 월 8만원을 절약할 수 있어요!',
-    ]);
-
-    // 일반 질문 관련 응답
-    this.aiResponses.set('general', [
-      '안녕하세요! 천마비고입니다. 재정 관리에 대해 무엇이든 물어보세요! 😊',
-      '지출 기록, 예산 계획, 저축 목표 설정 등 도움이 필요한 부분이 있나요?',
-      '오늘도 현명한 소비 습관을 만들어보아요! 어떤 도움이 필요하신가요?',
-      '천마비고와 함께 경제적 자유를 향해 한 걸음씩 나아가보아요! 💪',
-    ]);
-
-    // 인사 관련 응답
-    this.aiResponses.set('greeting', [
-      '안녕하세요! 반갑습니다. 오늘은 어떤 재정 관리를 도와드릴까요?',
-      '안녕하세요! 천마비고입니다. 똑똑한 가계 관리를 시작해보아요!',
-      '반가워요! 오늘도 현명한 소비로 목표에 한 걸음 더 가까워져요.',
-      '안녕하세요! 재정 관리의 든든한 파트너 천마비고예요. 🏦',
-    ]);
-  }
-
-  /**
-   * 응답 패턴 검증
-   */
-  private async validateResponsePatterns(): Promise<void> {
-    const requiredPatterns = [
-      'transaction',
-      'advice',
-      'goal',
-      'analysis',
-      'general',
-      'greeting',
-    ];
-
-    for (const pattern of requiredPatterns) {
-      if (
-        !this.aiResponses.has(pattern) ||
-        this.aiResponses.get(pattern)!.length === 0
-      ) {
-        console.warn(`Missing response pattern: ${pattern}`);
-      }
-    }
-
-    console.log(
-      `Loaded ${this.aiResponses.size} response patterns with ${Array.from(
-        this.aiResponses.values()
-      ).reduce((sum, arr) => sum + arr.length, 0)} total responses`
-    );
-  }
 
   /**
    * 사용자 메시지 처리
@@ -264,204 +180,30 @@ export class ExaoneService {
   }
 
   /**
-   * 실제 EXAONE 3.5 7.8B 모델 API 호출
+   * Python LLM 서버를 통한 EXAONE 3.5 7.8B 모델 호출
    */
   private async callExaoneModel(prompt: string): Promise<string> {
     try {
-      console.log('Calling EXAONE API with prompt:', prompt);
+      console.log('Calling Python LLM Server with prompt:', prompt);
 
-      if (!this.config.apiKey) {
-        console.warn('No API key provided, falling back to pattern matching');
-        return this.generatePatternMatchingResponse(prompt);
-      }
+      // Python LLM 서버를 통해 AI 응답 생성
+      const response = await pythonLLMService.generateChatResponse(prompt);
 
-      const apiUrl =
-        'https://api-inference.huggingface.co/models/LGAI-EXAONE/EXAONE-3.5-7.8B-Instruct';
+      console.log('Python LLM Server response received:', response);
 
-      const requestBody = {
-        inputs: prompt,
-        parameters: {
-          max_new_tokens: this.config.maxTokens,
-          temperature: this.config.temperature,
-          top_p: 0.9,
-          do_sample: true,
-          repetition_penalty: 1.1,
-          return_full_text: false,
-        },
-        options: {
-          wait_for_model: true,
-          use_cache: false,
-        },
-      };
-
-      console.log('Making API request to:', apiUrl);
-
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${this.config.apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        console.error(
-          'API response not ok:',
-          response.status,
-          response.statusText
-        );
-
-        // API 오류 시 패턴 매칭으로 폴백
-        if (response.status === 503) {
-          console.log('Model loading, falling back to pattern matching');
-          return this.generatePatternMatchingResponse(prompt);
-        }
-
-        throw new Error(`API Error: ${response.status} ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      console.log('API response received:', result);
-
-      // Hugging Face API 응답 형태 처리
-      let aiResponse = '';
-      if (Array.isArray(result) && result.length > 0) {
-        aiResponse = result[0].generated_text || result[0].text || '';
-      } else if (result.generated_text) {
-        aiResponse = result.generated_text;
-      } else if (typeof result === 'string') {
-        aiResponse = result;
-      }
-
-      if (!aiResponse.trim()) {
-        console.warn('Empty response from API, using fallback');
-        return this.generatePatternMatchingResponse(prompt);
-      }
-
-      // 의도 분석
-      const intent = this.detectBasicIntent(prompt);
-
-      // JSON 형태로 포맷팅하여 기존 파서와 호환
+      // Python LLM 서버의 응답 형식에 맞게 포맷팅
       return JSON.stringify({
-        intent: intent,
-        response: aiResponse.trim(),
-        suggestions: this.generateSuggestionsForIntent(intent),
-        metadata: {
-          confidence: 0.92,
-          responseTime: Date.now(),
-          version: 'EXAONE-3.5-7.8B',
-          tokensUsed: this.estimateTokens(prompt + aiResponse),
-        },
+        response: response,
+        status: 'success'
       });
     } catch (error) {
-      console.error('EXAONE API call failed:', error);
+      console.error('Python LLM Server call failed:', error);
 
-      // API 실패 시 패턴 매칭으로 폴백
-      console.log('Falling back to pattern matching due to API error');
-      return this.generatePatternMatchingResponse(prompt);
-    }
-  }
-
-  /**
-   * 패턴 매칭 기반 폴백 응답 (API 실패시 사용)
-   */
-  private generatePatternMatchingResponse(prompt: string): string {
-    try {
-      console.log('Using pattern matching fallback for:', prompt);
-
-      // 의도 분석을 위해 프롬프트 분석
-      const intent = this.detectBasicIntent(prompt);
-      console.log('Detected intent:', intent);
-
-      // 의도에 따른 응답 선택
-      const responses = this.getResponsesByIntent(intent);
-
-      if (responses.length === 0) {
-        return this.generateFallbackResponse(prompt);
-      }
-
-      // 랜덤하게 응답 선택 (다양성 제공)
-      const randomIndex = Math.floor(Math.random() * responses.length);
-      const selectedResponse = responses[randomIndex];
-
-      console.log('Selected pattern response:', selectedResponse);
-
-      // 응답을 JSON 형태로 포맷팅
+      // 에러 시 기본 응답 반환
       return JSON.stringify({
-        intent: intent,
-        response: selectedResponse,
-        suggestions: this.generateSuggestionsForIntent(intent),
-        metadata: {
-          confidence: 0.75,
-          responseTime: Date.now(),
-          version: 'pattern-matching-fallback-v1.0',
-          tokensUsed: this.estimateTokens(prompt + selectedResponse),
-        },
+        response: '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
+        status: 'error'
       });
-    } catch (error) {
-      console.error('Pattern matching fallback failed:', error);
-      return this.generateFallbackResponse(prompt);
-    }
-  }
-
-  /**
-   * 토큰 수 추정 (한국어 기준)
-   */
-  private estimateTokens(text: string): number {
-    // 한국어는 대략 2-3글자당 1토큰으로 추정
-    return Math.ceil(text.length / 2.5);
-  }
-
-  /**
-   * 의도에 따른 응답 목록 반환
-   */
-  private getResponsesByIntent(intent: string): string[] {
-    switch (intent) {
-      case 'transaction_record':
-        return this.aiResponses.get('transaction') || [];
-      case 'financial_advice':
-        return this.aiResponses.get('advice') || [];
-      case 'goal_setting':
-        return this.aiResponses.get('goal') || [];
-      case 'spending_analysis':
-        return this.aiResponses.get('analysis') || [];
-      case 'greeting':
-        return this.aiResponses.get('greeting') || [];
-      default:
-        return this.aiResponses.get('general') || [];
-    }
-  }
-
-  /**
-   * 의도에 따른 제안 사항 생성
-   */
-  private generateSuggestionsForIntent(intent: string): string[] {
-    switch (intent) {
-      case 'transaction_record':
-        return [
-          '카테고리별로 분류하기',
-          '이번 달 지출 현황 보기',
-          '절약 팁 받아보기',
-        ];
-      case 'financial_advice':
-        return [
-          '월 예산 계획 세우기',
-          '지출 카테고리 분석하기',
-          '절약 목표 설정하기',
-        ];
-      case 'goal_setting':
-        return ['목표 달성 계획 세우기', '진행 상황 확인하기', '동기부여 받기'];
-      case 'spending_analysis':
-        return ['상세 분석 보기', '절약 포인트 찾기', '예산 조정하기'];
-      case 'greeting':
-        return [
-          '오늘 지출 기록하기',
-          '이번 달 예산 확인하기',
-          '저축 목표 세우기',
-        ];
-      default:
-        return ['지출 기록하기', '예산 계획 세우기', '재정 조언 받기'];
     }
   }
 
@@ -529,7 +271,7 @@ export class ExaoneService {
   }
 
   /**
-   * 향상된 의도 분류 (키워드 및 패턴 기반)
+   * 기본 의도 분류
    */
   private detectBasicIntent(input: string): string {
     const lowerInput = input.toLowerCase();
@@ -597,48 +339,6 @@ export class ExaoneService {
   }
 
   /**
-   * 폴백 응답 생성
-   */
-  private generateFallbackResponse(prompt: string): string {
-    // 기본적인 패턴 매칭 응답
-    if (prompt.includes('거래')) {
-      return JSON.stringify({
-        intent: 'transaction_record',
-        response:
-          '거래 내용을 확인했습니다. 더 자세한 정보를 제공해주시면 정확히 기록해드리겠습니다.',
-        suggestions: [
-          '금액과 항목을 다시 말씀해주세요',
-          '어디서 결제하셨나요?',
-        ],
-      });
-    }
-
-    if (prompt.includes('조언') || prompt.includes('팁')) {
-      return JSON.stringify({
-        intent: 'financial_advice',
-        response:
-          '가계 관리의 기본은 수입과 지출을 정확히 파악하는 것입니다. 매일 지출을 기록하고 월별 예산을 세워보세요.',
-        suggestions: [
-          '월 예산 계획 세우기',
-          '지출 카테고리 분석하기',
-          '절약 목표 설정하기',
-        ],
-      });
-    }
-
-    return JSON.stringify({
-      intent: 'general_question',
-      response:
-        '안녕하세요! 천마비고입니다. 재정 관리에 대해 무엇이든 물어보세요. 지출 기록, 예산 계획, 저축 목표 등을 도와드릴 수 있어요! 😊',
-      suggestions: [
-        '오늘 지출 기록하기',
-        '이번 달 예산 확인하기',
-        '저축 목표 세우기',
-      ],
-    });
-  }
-
-  /**
    * 에러 처리
    */
   private handleError(error: any, userInput: string): AIResponse {
@@ -660,45 +360,33 @@ export class ExaoneService {
   }
 
   /**
-   * 패턴 매칭 시스템 상태 확인
+   * Python LLM 서버 상태 확인
    */
   private async checkModelHealth(): Promise<boolean> {
     try {
-      // 응답 패턴이 제대로 로드되었는지 확인
-      const requiredPatterns = [
-        'transaction',
-        'advice',
-        'goal',
-        'analysis',
-        'general',
-        'greeting',
-      ];
+      // Python LLM 서버 연결 상태 확인
+      const isConnected = await pythonLLMService.testConnection();
 
-      for (const pattern of requiredPatterns) {
-        if (
-          !this.aiResponses.has(pattern) ||
-          this.aiResponses.get(pattern)!.length === 0
-        ) {
-          console.warn(`Pattern missing or empty: ${pattern}`);
-          return false;
-        }
+      if (!isConnected) {
+        console.warn('Python LLM Server is not connected');
+        return false;
       }
 
       // 테스트 응답 생성
       const testResponse = await this.callExaoneModel('안녕하세요');
 
-      console.log('Pattern matching health check response:', testResponse);
+      console.log('Python LLM Server health check response:', testResponse);
 
       // JSON 파싱 및 응답 검증
       try {
         const parsed = JSON.parse(testResponse);
-        return !!(parsed.response && parsed.intent && parsed.suggestions);
+        return !!(parsed.response && parsed.status);
       } catch (parseError) {
         console.warn('Failed to parse test response:', parseError);
         return false;
       }
     } catch (error) {
-      console.warn('Pattern matching health check failed:', error);
+      console.warn('Python LLM Server health check failed:', error);
       return false;
     }
   }

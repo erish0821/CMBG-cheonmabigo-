@@ -40,6 +40,7 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction) 
 
     // 사용자 정보를 request에 추가
     req.user = {
+      id: user.id,
       userId: user.id,
       email: user.email,
       name: user.name,
@@ -86,6 +87,7 @@ export const optionalAuth = async (req: AuthRequest, res: Response, next: NextFu
     const user = await User.query().findById(decoded.userId);
     if (user && user.is_active) {
       req.user = {
+        id: user.id,
         userId: user.id,
         email: user.email,
         name: user.name,

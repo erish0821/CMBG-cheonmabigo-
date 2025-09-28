@@ -1,26 +1,35 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Budget, BudgetSummary, CreateBudgetRequest, UpdateBudgetRequest, BudgetAnalytics } from '../../types/budget';
-import { Transaction } from '../../types/transaction';
-import { transactionStorage } from '../storage/TransactionStorage';
+import { apiClient, ApiResponse } from '../api/apiClient';
 
 export class BudgetService {
-  private static readonly STORAGE_KEY = 'budgets';
-
   /**
    * 모든 예산 조회
    */
   static async getAllBudgets(userId: number): Promise<Budget[]> {
     try {
-      const budgetsData = await AsyncStorage.getItem(`${this.STORAGE_KEY}_${userId}`);
+      const response = await apiClient.get<Budget[]>('/budgets');
 
-      if (budgetsData) {
-        const budgets: Budget[] = JSON.parse(budgetsData);
-        return budgets.map(budget => ({
-          ...budget,
-          startDate: new Date(budget.startDate),
-          endDate: budget.endDate ? new Date(budget.endDate) : undefined,
-          createdAt: new Date(budget.createdAt),
-          updatedAt: new Date(budget.updatedAt),
+      if (response.success && response.data) {
+        return response.data.map((budget: any) => ({
+          id: budget.id,
+          userId: budget.user_id,
+          name: budget.name,
+          amount: budget.amount,
+          category: budget.category,
+          period: budget.period,
+          startDate: new Date(budget.start_date),
+          endDate: budget.end_date ? new Date(budget.end_date) : undefined,
+          alertThreshold: budget.alert_threshold,
+          isActive: budget.is_active,
+          autoRenew: budget.auto_renew,
+          description: budget.description,
+          createdAt: new Date(budget.created_at),
+          updatedAt: new Date(budget.updated_at),
+          // 추가 필드들 (예산 분석 데이터)
+          spentAmount: budget.spent_amount || 0,
+          remainingAmount: budget.remaining_amount || budget.amount,
+          usagePercent: budget.usage_percent || 0,
+          status: budget.status || 'normal',
         }));
       }
 
@@ -43,8 +52,25 @@ export class BudgetService {
    * 특정 예산 조회
    */
   static async getBudgetById(userId: number, budgetId: string): Promise<Budget | null> {
-    const budgets = await this.getAllBudgets(userId);
-    return budgets.find(budget => budget.id === budgetId) || null;
+    try {
+      const response = await apiClient.get<Budget>(`/budgets/${budgetId}`);
+
+      if (response.success && response.data) {
+        const budget = response.data;
+        return {
+          ...budget,
+          startDate: new Date(budget.startDate),
+          endDate: budget.endDate ? new Date(budget.endDate) : undefined,
+          createdAt: new Date(budget.createdAt),
+          updatedAt: new Date(budget.updatedAt),
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error('예산 조회 실패:', error);
+      return null;
+    }
   }
 
   /**
@@ -52,41 +78,34 @@ export class BudgetService {
    */
   static async createBudget(userId: number, budgetData: CreateBudgetRequest): Promise<Budget> {
     try {
-      const existingBudgets = await this.getAllBudgets(userId);
-
-      const newBudget: Budget = {
-        id: `budget_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        userId,
+      const payload = {
         name: budgetData.name,
         category: budgetData.category,
         amount: budgetData.amount,
         period: budgetData.period,
-        startDate: budgetData.startDate,
-        endDate: budgetData.endDate,
-        spent: 0,
-        remaining: budgetData.amount,
+        startDate: budgetData.startDate.toISOString().split('T')[0],
+        endDate: budgetData.endDate?.toISOString().split('T')[0],
+        alertThreshold: 80,
         isActive: true,
-        isRecurring: budgetData.isRecurring,
-        color: budgetData.color || '#7C3AED',
-        icon: '💰',
+        autoRenew: budgetData.isRecurring || false,
         description: budgetData.description,
-        alerts: budgetData.alerts || {
-          enabled: true,
-          thresholds: [70, 90, 100],
-        },
-        createdAt: new Date(),
-        updatedAt: new Date(),
       };
 
-      const updatedBudgets = [...existingBudgets, newBudget];
+      const response = await apiClient.post<Budget>('/budgets', payload);
 
-      await AsyncStorage.setItem(
-        `${this.STORAGE_KEY}_${userId}`,
-        JSON.stringify(updatedBudgets)
-      );
+      if (response.success && response.data) {
+        const budget = response.data;
+        console.log('새 예산 생성 완료:', budget.name);
+        return {
+          ...budget,
+          startDate: new Date(budget.startDate),
+          endDate: budget.endDate ? new Date(budget.endDate) : undefined,
+          createdAt: new Date(budget.createdAt),
+          updatedAt: new Date(budget.updatedAt),
+        };
+      }
 
-      console.log('새 예산 생성 완료:', newBudget.name);
-      return newBudget;
+      throw new Error('예산 생성 응답이 올바르지 않습니다.');
     } catch (error) {
       console.error('예산 생성 실패:', error);
       throw new Error('예산 생성에 실패했습니다.');
@@ -102,33 +121,31 @@ export class BudgetService {
     updates: UpdateBudgetRequest
   ): Promise<Budget> {
     try {
-      const budgets = await this.getAllBudgets(userId);
-      const budgetIndex = budgets.findIndex(budget => budget.id === budgetId);
+      const payload: any = { ...updates };
 
-      if (budgetIndex === -1) {
-        throw new Error('해당 예산을 찾을 수 없습니다.');
+      // 날짜 필드 변환
+      if (updates.startDate) {
+        payload.startDate = updates.startDate.toISOString().split('T')[0];
+      }
+      if (updates.endDate) {
+        payload.endDate = updates.endDate.toISOString().split('T')[0];
       }
 
-      const updatedBudget: Budget = {
-        ...budgets[budgetIndex],
-        ...updates,
-        updatedAt: new Date(),
-      };
+      const response = await apiClient.put<Budget>(`/budgets/${budgetId}`, payload);
 
-      // 예산 금액이 변경된 경우 remaining 계산
-      if (updates.amount !== undefined) {
-        updatedBudget.remaining = updates.amount - updatedBudget.spent;
+      if (response.success && response.data) {
+        const budget = response.data;
+        console.log('예산 업데이트 완료:', budgetId);
+        return {
+          ...budget,
+          startDate: new Date(budget.startDate),
+          endDate: budget.endDate ? new Date(budget.endDate) : undefined,
+          createdAt: new Date(budget.createdAt),
+          updatedAt: new Date(budget.updatedAt),
+        };
       }
 
-      budgets[budgetIndex] = updatedBudget;
-
-      await AsyncStorage.setItem(
-        `${this.STORAGE_KEY}_${userId}`,
-        JSON.stringify(budgets)
-      );
-
-      console.log('예산 업데이트 완료:', budgetId);
-      return updatedBudget;
+      throw new Error('예산 업데이트 응답이 올바르지 않습니다.');
     } catch (error) {
       console.error('예산 업데이트 실패:', error);
       throw error;
@@ -140,15 +157,13 @@ export class BudgetService {
    */
   static async deleteBudget(userId: number, budgetId: string): Promise<void> {
     try {
-      const budgets = await this.getAllBudgets(userId);
-      const filteredBudgets = budgets.filter(budget => budget.id !== budgetId);
+      const response = await apiClient.delete(`/budgets/${budgetId}`);
 
-      await AsyncStorage.setItem(
-        `${this.STORAGE_KEY}_${userId}`,
-        JSON.stringify(filteredBudgets)
-      );
-
-      console.log('예산 삭제 완료:', budgetId);
+      if (response.success) {
+        console.log('예산 삭제 완료:', budgetId);
+      } else {
+        throw new Error('예산 삭제 응답이 올바르지 않습니다.');
+      }
     } catch (error) {
       console.error('예산 삭제 실패:', error);
       throw new Error('예산 삭제에 실패했습니다.');
@@ -160,36 +175,8 @@ export class BudgetService {
    */
   static async updateBudgetSpending(userId: number): Promise<void> {
     try {
-      const budgets = await this.getAllBudgets(userId);
-      const transactions = await transactionStorage.getAllTransactions();
-
-      for (const budget of budgets) {
-        if (!budget.isActive) continue;
-
-        // 예산 기간에 해당하는 거래 필터링
-        const relevantTransactions = this.getTransactionsInBudgetPeriod(
-          transactions,
-          budget
-        );
-
-        // 카테고리별 지출 계산
-        const categorySpent = relevantTransactions
-          .filter(transaction =>
-            transaction.category === budget.category && !transaction.isIncome
-          )
-          .reduce((total, transaction) => total + transaction.amount, 0);
-
-        // 예산 업데이트
-        budget.spent = categorySpent;
-        budget.remaining = Math.max(0, budget.amount - categorySpent);
-        budget.updatedAt = new Date();
-      }
-
-      await AsyncStorage.setItem(
-        `${this.STORAGE_KEY}_${userId}`,
-        JSON.stringify(budgets)
-      );
-
+      // 백엔드에서 지출 계산이 자동으로 이루어지므로,
+      // 여기서는 단순히 최신 예산 데이터를 가져오기만 하면 됨
       console.log('예산별 지출 업데이트 완료');
     } catch (error) {
       console.error('예산 지출 업데이트 실패:', error);
@@ -201,11 +188,30 @@ export class BudgetService {
    */
   static async getBudgetSummary(userId: number): Promise<BudgetSummary> {
     try {
-      await this.updateBudgetSpending(userId);
+      // 백엔드 API에서 예산 요약 정보를 직접 가져오기
+      console.log('예산 요약 정보 로드 시작, 사용자 ID:', userId);
+      const response = await apiClient.get<any>('/budgets/summary');
+
+      if (response.success && response.data) {
+        const data = response.data;
+        console.log('백엔드에서 받은 예산 요약 데이터:', data);
+
+        return {
+          totalBudget: data.totalBudget || 0,
+          totalSpent: data.totalSpent || 0,
+          totalRemaining: data.totalRemaining || 0,
+          budgetProgress: data.budgetProgress || 0,
+          dailyRecommended: data.dailyRecommended || 0,
+          status: data.status || 'good',
+        };
+      }
+
+      // 백엔드 API 실패 시 fallback: 로컬 계산
+      console.log('백엔드 API 실패, 로컬 계산으로 fallback');
       const activeBudgets = await this.getActiveBudgets(userId);
 
       const totalBudget = activeBudgets.reduce((sum, budget) => sum + budget.amount, 0);
-      const totalSpent = activeBudgets.reduce((sum, budget) => sum + budget.spent, 0);
+      const totalSpent = activeBudgets.reduce((sum, budget) => sum + (budget.spent || 0), 0);
       const totalRemaining = Math.max(0, totalBudget - totalSpent);
       const budgetProgress = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
 
@@ -222,15 +228,17 @@ export class BudgetService {
 
       const budgetsByCategory: { [category: string]: any } = {};
       for (const budget of activeBudgets) {
-        const progress = budget.amount > 0 ? (budget.spent / budget.amount) * 100 : 0;
+        const spent = budget.spent || 0;
+        const progress = budget.amount > 0 ? (spent / budget.amount) * 100 : 0;
         budgetsByCategory[budget.category] = {
           budget: budget.amount,
-          spent: budget.spent,
-          remaining: budget.remaining,
+          spent,
+          remaining: budget.amount - spent,
           progress: Math.round(progress),
         };
       }
 
+      console.log('사용자 예산 정보 로드됨:', totalBudget);
       return {
         totalBudget,
         totalSpent,
@@ -246,46 +254,6 @@ export class BudgetService {
     }
   }
 
-  /**
-   * 예산 기간에 해당하는 거래 필터링
-   */
-  private static getTransactionsInBudgetPeriod(
-    transactions: Transaction[],
-    budget: Budget
-  ): Transaction[] {
-    const now = new Date();
-    let periodStart: Date;
-    let periodEnd: Date;
-
-    switch (budget.period) {
-      case 'daily':
-        periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        periodEnd = new Date(periodStart.getTime() + 24 * 60 * 60 * 1000);
-        break;
-      case 'weekly':
-        const dayOfWeek = now.getDay();
-        periodStart = new Date(now.getTime() - dayOfWeek * 24 * 60 * 60 * 1000);
-        periodStart.setHours(0, 0, 0, 0);
-        periodEnd = new Date(periodStart.getTime() + 7 * 24 * 60 * 60 * 1000);
-        break;
-      case 'monthly':
-        periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-        break;
-      case 'yearly':
-        periodStart = new Date(now.getFullYear(), 0, 1);
-        periodEnd = new Date(now.getFullYear() + 1, 0, 1);
-        break;
-      default:
-        periodStart = budget.startDate;
-        periodEnd = budget.endDate || now;
-    }
-
-    return transactions.filter(transaction => {
-      const transactionDate = new Date(transaction.date);
-      return transactionDate >= periodStart && transactionDate < periodEnd;
-    });
-  }
 
   /**
    * 일일 권장 지출 계산
@@ -306,8 +274,8 @@ export class BudgetService {
       const defaultBudgets: CreateBudgetRequest[] = [
         {
           name: '월 총 예산',
-          category: 'total',
-          amount: 1000000,
+          category: 'TOTAL',
+          amount: 800000,
           period: 'monthly',
           startDate: new Date(),
           isRecurring: true,
@@ -316,7 +284,7 @@ export class BudgetService {
         },
         {
           name: '식비',
-          category: 'food',
+          category: 'FOOD_DINING',
           amount: 300000,
           period: 'monthly',
           startDate: new Date(),
@@ -326,7 +294,7 @@ export class BudgetService {
         },
         {
           name: '교통비',
-          category: 'transport',
+          category: 'TRANSPORTATION',
           amount: 100000,
           period: 'monthly',
           startDate: new Date(),
@@ -355,38 +323,23 @@ export class BudgetService {
    */
   static async getBudgetAnalytics(userId: number, budgetId: string): Promise<BudgetAnalytics> {
     try {
+      // 백엔드 API를 통해 예산 분석 데이터 조회
+      // 향후 구현 시 백엔드에서 분석 데이터를 제공하도록 수정 필요
       const budget = await this.getBudgetById(userId, budgetId);
       if (!budget) {
         throw new Error('해당 예산을 찾을 수 없습니다.');
       }
 
-      const transactions = await transactionStorage.getAllTransactions();
-      const relevantTransactions = this.getTransactionsInBudgetPeriod(transactions, budget);
-
-      // 일별 지출 데이터
-      const dailySpending = this.calculateDailySpending(relevantTransactions);
-
-      // 주별 지출 데이터
-      const weeklySpending = this.calculateWeeklySpending(relevantTransactions);
-
-      // 카테고리별 지출 분석
-      const categoryBreakdown = this.calculateCategoryBreakdown(relevantTransactions);
-
-      // 평균 지출 및 트렌드
-      const averageSpending = dailySpending.reduce((sum, day) => sum + day.amount, 0) / dailySpending.length || 0;
-      const spendingTrend = this.calculateSpendingTrend(dailySpending);
-
-      const recommendations = this.generateRecommendations(budget, dailySpending, averageSpending);
-
+      // 임시로 기본 분석 데이터 반환
       return {
         budgetId,
         period: budget.period,
-        averageSpending,
-        spendingTrend,
-        categoryBreakdown,
-        dailySpending,
-        weeklySpending,
-        recommendations,
+        averageSpending: 0,
+        spendingTrend: 'stable' as const,
+        categoryBreakdown: {},
+        dailySpending: [],
+        weeklySpending: [],
+        recommendations: ['예산을 잘 관리하고 있습니다.'],
       };
     } catch (error) {
       console.error('예산 분석 실패:', error);
@@ -394,86 +347,4 @@ export class BudgetService {
     }
   }
 
-  private static calculateDailySpending(transactions: Transaction[]): { date: string; amount: number }[] {
-    const dailyMap = new Map<string, number>();
-
-    transactions.forEach(transaction => {
-      const date = transaction.date.toISOString().split('T')[0];
-      const current = dailyMap.get(date) || 0;
-      dailyMap.set(date, current + (transaction.isIncome ? 0 : transaction.amount));
-    });
-
-    return Array.from(dailyMap.entries()).map(([date, amount]) => ({ date, amount }));
-  }
-
-  private static calculateWeeklySpending(transactions: Transaction[]): { week: string; amount: number }[] {
-    const weeklyMap = new Map<string, number>();
-
-    transactions.forEach(transaction => {
-      const date = new Date(transaction.date);
-      const weekStart = new Date(date.getTime() - date.getDay() * 24 * 60 * 60 * 1000);
-      const week = weekStart.toISOString().split('T')[0];
-      const current = weeklyMap.get(week) || 0;
-      weeklyMap.set(week, current + (transaction.isIncome ? 0 : transaction.amount));
-    });
-
-    return Array.from(weeklyMap.entries()).map(([week, amount]) => ({ week, amount }));
-  }
-
-  private static calculateCategoryBreakdown(transactions: Transaction[]): { [category: string]: number } {
-    const categoryMap: { [category: string]: number } = {};
-
-    transactions.forEach(transaction => {
-      if (!transaction.isIncome) {
-        const current = categoryMap[transaction.category] || 0;
-        categoryMap[transaction.category] = current + transaction.amount;
-      }
-    });
-
-    return categoryMap;
-  }
-
-  private static calculateSpendingTrend(dailySpending: { date: string; amount: number }[]): 'increasing' | 'decreasing' | 'stable' {
-    if (dailySpending.length < 3) return 'stable';
-
-    const recentDays = dailySpending.slice(-7);
-    const firstHalf = recentDays.slice(0, Math.floor(recentDays.length / 2));
-    const secondHalf = recentDays.slice(Math.floor(recentDays.length / 2));
-
-    const firstAvg = firstHalf.reduce((sum, day) => sum + day.amount, 0) / firstHalf.length;
-    const secondAvg = secondHalf.reduce((sum, day) => sum + day.amount, 0) / secondHalf.length;
-
-    const change = (secondAvg - firstAvg) / firstAvg;
-
-    if (change > 0.1) return 'increasing';
-    if (change < -0.1) return 'decreasing';
-    return 'stable';
-  }
-
-  private static generateRecommendations(
-    budget: Budget,
-    dailySpending: { date: string; amount: number }[],
-    averageSpending: number
-  ): string[] {
-    const recommendations: string[] = [];
-
-    const progress = budget.amount > 0 ? (budget.spent / budget.amount) * 100 : 0;
-
-    if (progress > 90) {
-      recommendations.push('예산의 90%를 초과했습니다. 지출을 줄이는 것을 고려해보세요.');
-    } else if (progress > 70) {
-      recommendations.push('예산의 70%를 사용했습니다. 남은 기간 동안 지출을 조절해보세요.');
-    }
-
-    const dailyRecommended = this.calculateDailyRecommendedSpending(budget.remaining);
-    if (averageSpending > dailyRecommended * 1.2) {
-      recommendations.push(`일일 평균 지출이 권장량보다 높습니다. 하루 ${dailyRecommended.toLocaleString()}원 이하로 지출해보세요.`);
-    }
-
-    if (recommendations.length === 0) {
-      recommendations.push('예산을 잘 관리하고 있습니다. 계속 유지해보세요!');
-    }
-
-    return recommendations;
-  }
 }

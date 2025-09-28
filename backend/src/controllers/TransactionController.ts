@@ -5,8 +5,15 @@ import { validationResult } from 'express-validator';
 export class TransactionController {
   static async createTransaction(req: Request, res: Response) {
     try {
+      console.log('🔍 Transaction 생성 요청 받음:');
+      console.log('- req.body:', JSON.stringify(req.body, null, 2));
+      console.log('- req.user:', req.user);
+      console.log('- req.user?.id:', req.user?.id);
+      console.log('- req.user?.id 타입:', typeof req.user?.id);
+
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
+        console.log('❌ Validation 오류:', errors.array());
         return res.status(400).json({
           success: false,
           message: 'Validation failed',
@@ -24,8 +31,11 @@ export class TransactionController {
 
       const transactionData = {
         ...req.body,
-        user_id: userId
+        user_id: String(userId)  // 숫자를 문자열로 변환
       };
+
+      console.log('📦 최종 transactionData:', JSON.stringify(transactionData, null, 2));
+      console.log('🔢 transactionData.user_id 타입:', typeof transactionData.user_id);
 
       const transaction = await Transaction.query().insert(transactionData);
 
@@ -264,7 +274,7 @@ export class TransactionController {
 
       const transactionsWithUserId = transactions.map((transaction: any) => ({
         ...transaction,
-        user_id: userId
+        user_id: String(userId)  // 숫자를 문자열로 변환
       }));
 
       const createdTransactions = await Transaction.query()

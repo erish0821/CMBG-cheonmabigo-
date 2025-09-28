@@ -1,6 +1,6 @@
 import express from 'express';
 import { TransactionController } from '../controllers/TransactionController';
-import { authenticateToken } from '../middleware/auth';
+import { auth } from '../middleware/auth';
 import {
   createTransactionValidation,
   updateTransactionValidation,
@@ -11,7 +11,7 @@ import {
 const router = express.Router();
 
 // 모든 거래 관련 API는 인증이 필요
-router.use(authenticateToken);
+router.use(auth);
 
 /**
  * @swagger

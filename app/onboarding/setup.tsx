@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../src/stores/authStore';
+import { useBudgetStore } from '../../src/stores/budgetStore';
 import {
   Screen,
   Container,
@@ -23,7 +24,8 @@ import { AddIcon, AnalyticsIcon, HomeIcon } from '../../src/components/ui/Icon';
 
 export default function SetupScreen() {
   const router = useRouter();
-  const { updateProfile, isLoading } = useAuthStore();
+  const { updateProfile, isLoading, user } = useAuthStore();
+  const { updateBudgetSpending, loadBudgetSummary } = useBudgetStore();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
 
@@ -134,6 +136,14 @@ export default function SetupScreen() {
 
       // API 호출하여 프로필 업데이트
       await updateProfile(onboardingData);
+
+      // 예산 스토어 동기화 (홈/분석 탭과 동일한 로직)
+      if (user?.id) {
+        console.log('온보딩 완료 후 예산 스토어 동기화 시작');
+        await updateBudgetSpending(user.id);
+        await loadBudgetSummary(user.id);
+        console.log('예산 스토어 동기화 완료');
+      }
 
       // 성공 메시지 표시
       if (typeof window !== 'undefined') {

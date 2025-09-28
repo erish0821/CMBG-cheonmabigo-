@@ -86,6 +86,69 @@ app.get('/api/db-test', async (req, res) => {
       table.timestamps(true, true);
     });
 
+    // budgets 테이블 생성
+    await knex.schema.dropTableIfExists('budgets');
+    await knex.schema.createTable('budgets', (table) => {
+      table.increments('id').primary();
+      table.integer('user_id').unsigned().notNullable();
+      table.foreign('user_id').references('id').inTable('users').onDelete('CASCADE');
+      table.string('name', 100).notNullable();
+      table.decimal('amount', 12, 2).notNullable();
+      table.enum('category', [
+        'FOOD_DINING',
+        'TRANSPORTATION',
+        'SHOPPING',
+        'ENTERTAINMENT',
+        'HEALTHCARE',
+        'EDUCATION',
+        'UTILITY',
+        'TRAVEL',
+        'OTHER',
+        'TOTAL'
+      ]).notNullable();
+      table.enum('period', ['weekly', 'monthly', 'quarterly', 'yearly']).notNullable();
+      table.date('start_date').notNullable();
+      table.date('end_date').notNullable();
+      table.decimal('alert_threshold', 5, 2).defaultTo(80.00);
+      table.boolean('is_active').defaultTo(true);
+      table.boolean('auto_renew').defaultTo(false);
+      table.text('description').nullable();
+      table.timestamps(true, true);
+    });
+
+    // transactions 테이블 생성
+    await knex.schema.dropTableIfExists('transactions');
+    await knex.schema.createTable('transactions', (table) => {
+      table.increments('id').primary();
+      table.integer('user_id').unsigned().notNullable();
+      table.foreign('user_id').references('id').inTable('users').onDelete('CASCADE');
+      table.decimal('amount', 12, 2).notNullable();
+      table.string('description', 255).notNullable();
+      table.enum('category', [
+        'FOOD_DINING',
+        'TRANSPORTATION',
+        'SHOPPING',
+        'ENTERTAINMENT',
+        'HEALTHCARE',
+        'EDUCATION',
+        'INCOME',
+        'UTILITY',
+        'TRAVEL',
+        'OTHER'
+      ]).notNullable();
+      table.string('subcategory', 100).nullable();
+      table.boolean('is_income').defaultTo(false);
+      table.enum('payment_method', ['CARD', 'CASH', 'TRANSFER', 'MOBILE_PAY']).defaultTo('CARD');
+      table.string('location', 255).nullable();
+      table.json('tags').nullable();
+      table.decimal('confidence', 3, 2).nullable();
+      table.text('original_text').nullable();
+      table.boolean('ai_parsed').defaultTo(false);
+      table.boolean('user_modified').defaultTo(false);
+      table.datetime('transaction_date').notNullable();
+      table.timestamps(true, true);
+    });
+
     res.json({
       success: true,
       message: '데이터베이스 연결 및 테이블 생성 성공',
@@ -104,10 +167,12 @@ app.get('/api/db-test', async (req, res) => {
 
 // 라우트 활성화
 import authRoutes from './routes/auth';
-// import transactionRoutes from './routes/transactions';
+import budgetRoutes from './routes/budgets';
+import transactionRoutes from './routes/transactions';
 
 app.use('/api/auth', authRoutes);
-// app.use('/api/transactions', transactionRoutes);
+app.use('/api/budgets', budgetRoutes);
+app.use('/api/transactions', transactionRoutes);
 
 // 404 에러 핸들러
 app.use((req, res) => {

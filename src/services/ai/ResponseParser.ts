@@ -10,8 +10,8 @@ import {
 } from '../../types/ai';
 
 /**
- * EXAONE 모델 응답 파싱 및 처리 클래스
- * 한국어 자연어 처리 및 엔티티 추출 전담
+ * Python LLM 서버 응답 파싱 클래스
+ * 간단한 {response: string, status: string} 형식 처리
  */
 export class ResponseParser {
   private currencyKeywords = ['원', '만원', '천원', '백원'];
@@ -43,50 +43,76 @@ export class ResponseParser {
   };
 
   /**
-   * AI 모델 응답을 파싱하여 구조화된 데이터로 변환
+   * Python LLM 서버 응답을 파싱하여 구조화된 데이터로 변환
    */
   parseResponse(rawResponse: string, originalInput: string): AIResponse {
     try {
-      // JSON 응답 시도
+      console.log('ResponseParser: Python LLM 응답 파싱 시작', { rawResponse, originalInput });
+
+      // Python LLM 서버 JSON 응답 시도
       const jsonResponse = this.tryParseJSON(rawResponse);
-      if (jsonResponse) {
-        return this.parseJSONResponse(jsonResponse, originalInput);
+      if (jsonResponse && jsonResponse.response && jsonResponse.status) {
+        console.log('ResponseParser: Python LLM JSON 파싱 성공');
+        return this.parsePythonLLMResponse(jsonResponse, originalInput);
       }
 
-      // 일반 텍스트 응답 처리
+      // JSON 파싱 실패 시 텍스트로 처리
+      console.log('ResponseParser: JSON 파싱 실패, 텍스트로 처리');
       return this.parseTextResponse(rawResponse, originalInput);
     } catch (error) {
-      console.error('Response parsing error:', error);
+      console.error('ResponseParser: 파싱 중 오류 발생', error);
       return this.createErrorResponse(originalInput, error);
     }
   }
 
   /**
-   * JSON 형식 응답 파싱
+   * Python LLM 서버 JSON 응답 파싱
    */
-  private parseJSONResponse(
+  private parsePythonLLMResponse(
     jsonResponse: any,
     originalInput: string
   ): AIResponse {
     const id = this.generateResponseId();
-    const intent = this.detectIntent(jsonResponse.intent || originalInput);
-    const confidence = this.calculateConfidence(jsonResponse, originalInput);
+    const intent = this.detectIntent(originalInput);
+    const confidence = this.calculatePythonLLMConfidence(jsonResponse, originalInput);
 
     return {
       id,
-      content: jsonResponse.response || jsonResponse.content || '',
+      content: jsonResponse.response || '',
       intent,
       confidence,
-      extractedData: this.extractDataFromJSON(jsonResponse),
-      suggestions: jsonResponse.suggestions || [],
+      extractedData: this.extractDataFromText(originalInput, jsonResponse.response),
+      suggestions: this.generateSuggestions(intent),
       metadata: {
-        tokensUsed: this.estimateTokens(
-          originalInput + JSON.stringify(jsonResponse)
-        ),
+        tokensUsed: this.estimateTokens(originalInput + jsonResponse.response),
         responseTime: Date.now(),
-        modelVersion: 'EXAONE-3.5-7.8B',
+        modelVersion: 'EXAONE-3.5-7.8B-Python',
       },
     };
+  }
+
+  /**
+   * Python LLM 응답 신뢰도 계산
+   */
+  private calculatePythonLLMConfidence(
+    jsonResponse: any,
+    originalInput: string
+  ): number {
+    let confidence = 0.8; // Python LLM 서버 기본 신뢰도
+
+    // 성공 상태면 신뢰도 유지
+    if (jsonResponse.status === 'success') {
+      confidence = 0.85;
+    } else if (jsonResponse.status === 'error') {
+      confidence = 0.3;
+    }
+
+    // 응답 품질에 따른 조정
+    if (jsonResponse.response && jsonResponse.response.length > 10) {
+      confidence += 0.1;
+    }
+
+    return Math.min(confidence, 1.0);
   }
 
   /**
@@ -228,51 +254,6 @@ export class ResponseParser {
     return greetingKeywords.some(keyword => input.includes(keyword));
   }
 
-  /**
-   * JSON에서 데이터 추출
-   */
-  private extractDataFromJSON(jsonResponse: any): ExtractedData | undefined {
-    const extractedData: ExtractedData = {};
-
-    // 거래 정보 추출
-    if (jsonResponse.transaction) {
-      extractedData.transaction = {
-        amount: jsonResponse.transaction.amount,
-        description: jsonResponse.transaction.description,
-        category: jsonResponse.transaction.category,
-        location: jsonResponse.transaction.location,
-        paymentMethod: jsonResponse.transaction.paymentMethod,
-        date: jsonResponse.transaction.date
-          ? new Date(jsonResponse.transaction.date)
-          : new Date(),
-        type: jsonResponse.transaction.type || 'expense',
-      };
-    }
-
-    // 목표 정보 추출
-    if (jsonResponse.goal) {
-      extractedData.goal = {
-        title: jsonResponse.goal.title,
-        targetAmount: jsonResponse.goal.targetAmount,
-        targetDate: jsonResponse.goal.targetDate
-          ? new Date(jsonResponse.goal.targetDate)
-          : undefined,
-        category: jsonResponse.goal.category,
-        priority: jsonResponse.goal.priority || 'medium',
-      };
-    }
-
-    // 분석 정보 추출
-    if (jsonResponse.analysis) {
-      extractedData.analysis = {
-        period: jsonResponse.analysis.period,
-        category: jsonResponse.analysis.category,
-        type: jsonResponse.analysis.type,
-      };
-    }
-
-    return Object.keys(extractedData).length > 0 ? extractedData : undefined;
-  }
 
   /**
    * 텍스트에서 데이터 추출
@@ -419,25 +400,6 @@ export class ResponseParser {
     return undefined;
   }
 
-  /**
-   * 신뢰도 계산
-   */
-  private calculateConfidence(
-    jsonResponse: any,
-    originalInput: string
-  ): number {
-    let confidence = 0.5; // 기본값
-
-    // JSON 형식이면 신뢰도 상승
-    if (jsonResponse.intent) confidence += 0.2;
-    if (jsonResponse.transaction || jsonResponse.goal || jsonResponse.analysis)
-      confidence += 0.2;
-
-    // 금액이 정확히 추출되면 신뢰도 상승
-    if (this.extractAmount(originalInput) !== null) confidence += 0.1;
-
-    return Math.min(confidence, 1.0);
-  }
 
   /**
    * 텍스트 신뢰도 계산
@@ -514,21 +476,43 @@ export class ResponseParser {
   }
 
   /**
-   * JSON 파싱 시도
+   * JSON 파싱 시도 (Python LLM 서버 형식용)
    */
   private tryParseJSON(text: string): any | null {
+    if (!text || typeof text !== 'string') {
+      console.warn('ResponseParser: 빈 텍스트 또는 유효하지 않은 입력');
+      return null;
+    }
+
     try {
       // 코드 블록 제거
       const cleaned = text.replace(/```json\n?|\n?```/g, '').trim();
-      return JSON.parse(cleaned);
-    } catch {
+      const parsed = JSON.parse(cleaned);
+
+      // Python LLM 서버 형식 검증
+      if (parsed && typeof parsed === 'object' &&
+          'response' in parsed && 'status' in parsed) {
+        return parsed;
+      }
+
+      console.warn('ResponseParser: Python LLM 서버 형식이 아님', parsed);
+      return null;
+    } catch (error) {
+      console.warn('ResponseParser: JSON 파싱 실패, 부분 추출 시도', error);
+
       // 부분 JSON 추출 시도
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         try {
-          return JSON.parse(jsonMatch[0]);
-        } catch {
-          return null;
+          const parsed = JSON.parse(jsonMatch[0]);
+
+          // Python LLM 서버 형식 검증
+          if (parsed && typeof parsed === 'object' &&
+              'response' in parsed && 'status' in parsed) {
+            return parsed;
+          }
+        } catch (subError) {
+          console.warn('ResponseParser: 부분 JSON 파싱도 실패', subError);
         }
       }
       return null;
@@ -536,20 +520,32 @@ export class ResponseParser {
   }
 
   /**
-   * 에러 응답 생성
+   * 에러 응답 생성 (강화된 에러 처리)
    */
   private createErrorResponse(originalInput: string, error: any): AIResponse {
+    console.error('ResponseParser: 에러 응답 생성', { originalInput, error });
+
+    let errorMessage = '죄송합니다. 메시지를 처리하는 중 오류가 발생했습니다. 다시 시도해 주세요.';
+
+    // 에러 타입에 따른 메시지 커스터마이징
+    if (error instanceof SyntaxError) {
+      errorMessage = '응답 형식에 문제가 있습니다. 잠시 후 다시 시도해 주세요.';
+    } else if (error?.message?.includes('timeout')) {
+      errorMessage = '응답 시간이 초과되었습니다. 네트워크 상태를 확인하고 다시 시도해 주세요.';
+    } else if (error?.message?.includes('network')) {
+      errorMessage = '네트워크 연결에 문제가 있습니다. 인터넷 연결을 확인해 주세요.';
+    }
+
     return {
       id: this.generateResponseId(),
-      content:
-        '죄송합니다. 메시지를 처리하는 중 오류가 발생했습니다. 다시 시도해 주세요.',
+      content: errorMessage,
       intent: 'unknown',
       confidence: 0.0,
-      suggestions: ['다시 시도하기', '다른 방식으로 말해보기'],
+      suggestions: ['다시 시도하기', '네트워크 확인하기', '다른 방식으로 말해보기'],
       metadata: {
         tokensUsed: this.estimateTokens(originalInput),
         responseTime: Date.now(),
-        modelVersion: 'EXAONE-3.5-7.8B',
+        modelVersion: 'EXAONE-3.5-7.8B-Python',
       },
     };
   }

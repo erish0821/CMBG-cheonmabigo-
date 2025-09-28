@@ -7,3 +7,4 @@ export { CategoryPieChart } from './CategoryPieChart';
 export { WeeklyPatternChart } from './WeeklyPatternChart';
 export { BudgetProgressChart } from './BudgetProgressChart';
 export { InsightCard } from './InsightCard';
+export { DailyCalendarChart } from './DailyCalendarChart';

@@ -175,7 +175,9 @@ export class NLPParser {
   static isIncome(text: string): boolean {
     const incomeKeywords = [
       '받았', '입금', '월급', '급여', '상여금', '보너스', '용돈',
-      '수익', '판매', '환불', '캐시백', '적립', '리워드'
+      '수익', '판매', '환불', '캐시백', '적립', '리워드',
+      '벌었', '벌어', '소득', '수입', '수당', '배당', '이자',
+      '수령', '지급받', '들어왔', '입출금'
     ];
 
     return incomeKeywords.some(keyword => text.includes(keyword));

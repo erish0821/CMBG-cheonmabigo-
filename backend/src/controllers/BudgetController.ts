@@ -1,20 +1,10 @@
 import { Request, Response } from 'express';
 import { Budget } from '../models/Budget';
 import { Transaction } from '../models/Transaction';
-import { validationResult } from 'express-validator';
 
 export class BudgetController {
   static async createBudget(req: Request, res: Response) {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array()
-        });
-      }
-
       const userId = req.user?.id;
       if (!userId) {
         return res.status(401).json({
@@ -23,9 +13,16 @@ export class BudgetController {
         });
       }
 
+      const { startDate, endDate, alertThreshold, isActive, autoRenew, ...otherData } = req.body;
+
       const budgetData = {
-        ...req.body,
-        user_id: userId
+        ...otherData,
+        user_id: userId.toString(),
+        start_date: startDate,
+        end_date: endDate,
+        alert_threshold: alertThreshold,
+        is_active: isActive,
+        auto_renew: autoRenew
       };
 
       const budget = await Budget.query().insert(budgetData);
@@ -289,37 +286,37 @@ export class BudgetController {
     try {
       const templates = [
         {
-          name: '0ø Ô °',
+          name: '0ï¿½ ï¿½ ï¿½',
           period: 'monthly',
           categories: [
-            { category: 'FOOD_DINING', amount: 300000, description: 'İD' },
-            { category: 'TRANSPORTATION', amount: 150000, description: 'PµD' },
-            { category: 'SHOPPING', amount: 200000, description: 'üQ' },
+            { category: 'FOOD_DINING', amount: 300000, description: 'ï¿½D' },
+            { category: 'TRANSPORTATION', amount: 150000, description: 'Pï¿½D' },
+            { category: 'SHOPPING', amount: 200000, description: 'ï¿½Q' },
             { category: 'ENTERTAINMENT', amount: 100000, description: '$}' },
-            { category: 'UTILITY', amount: 100000, description: 'õü' }
+            { category: 'UTILITY', amount: 100000, description: 'ï¿½ï¿½' }
           ]
         },
         {
-          name: '} °',
+          name: '} ï¿½',
           period: 'monthly',
           categories: [
-            { category: 'FOOD_DINING', amount: 200000, description: 'İD' },
-            { category: 'TRANSPORTATION', amount: 100000, description: 'PµD' },
-            { category: 'SHOPPING', amount: 100000, description: 'üQ' },
+            { category: 'FOOD_DINING', amount: 200000, description: 'ï¿½D' },
+            { category: 'TRANSPORTATION', amount: 100000, description: 'Pï¿½D' },
+            { category: 'SHOPPING', amount: 100000, description: 'ï¿½Q' },
             { category: 'ENTERTAINMENT', amount: 50000, description: '$}' },
-            { category: 'UTILITY', amount: 80000, description: 'õü' }
+            { category: 'UTILITY', amount: 80000, description: 'ï¿½ï¿½' }
           ]
         },
         {
-          name: 'ì  °',
+          name: 'ï¿½  ï¿½',
           period: 'monthly',
           categories: [
-            { category: 'FOOD_DINING', amount: 500000, description: 'İD' },
-            { category: 'TRANSPORTATION', amount: 200000, description: 'PµD' },
-            { category: 'SHOPPING', amount: 400000, description: 'üQ' },
+            { category: 'FOOD_DINING', amount: 500000, description: 'ï¿½D' },
+            { category: 'TRANSPORTATION', amount: 200000, description: 'Pï¿½D' },
+            { category: 'SHOPPING', amount: 400000, description: 'ï¿½Q' },
             { category: 'ENTERTAINMENT', amount: 200000, description: '$}' },
-            { category: 'UTILITY', amount: 150000, description: 'õü' },
-            { category: 'TRAVEL', amount: 300000, description: 'ì‰' }
+            { category: 'UTILITY', amount: 150000, description: 'ï¿½ï¿½' },
+            { category: 'TRAVEL', amount: 300000, description: 'ï¿½' }
           ]
         }
       ];
@@ -360,27 +357,27 @@ export class BudgetController {
 
       // Get template data (in real app, this might come from database)
       const templates = {
-        '0ø Ô °': [
-          { category: 'FOOD_DINING', amount: 300000, name: 'İD' },
-          { category: 'TRANSPORTATION', amount: 150000, name: 'PµD' },
-          { category: 'SHOPPING', amount: 200000, name: 'üQ' },
+        '0ï¿½ ï¿½ ï¿½': [
+          { category: 'FOOD_DINING', amount: 300000, name: 'ï¿½D' },
+          { category: 'TRANSPORTATION', amount: 150000, name: 'Pï¿½D' },
+          { category: 'SHOPPING', amount: 200000, name: 'ï¿½Q' },
           { category: 'ENTERTAINMENT', amount: 100000, name: '$}' },
-          { category: 'UTILITY', amount: 100000, name: 'õü' }
+          { category: 'UTILITY', amount: 100000, name: 'ï¿½ï¿½' }
         ],
-        '} °': [
-          { category: 'FOOD_DINING', amount: 200000, name: 'İD' },
-          { category: 'TRANSPORTATION', amount: 100000, name: 'PµD' },
-          { category: 'SHOPPING', amount: 100000, name: 'üQ' },
+        '} ï¿½': [
+          { category: 'FOOD_DINING', amount: 200000, name: 'ï¿½D' },
+          { category: 'TRANSPORTATION', amount: 100000, name: 'Pï¿½D' },
+          { category: 'SHOPPING', amount: 100000, name: 'ï¿½Q' },
           { category: 'ENTERTAINMENT', amount: 50000, name: '$}' },
-          { category: 'UTILITY', amount: 80000, name: 'õü' }
+          { category: 'UTILITY', amount: 80000, name: 'ï¿½ï¿½' }
         ],
-        'ì  °': [
-          { category: 'FOOD_DINING', amount: 500000, name: 'İD' },
-          { category: 'TRANSPORTATION', amount: 200000, name: 'PµD' },
-          { category: 'SHOPPING', amount: 400000, name: 'üQ' },
+        'ï¿½  ï¿½': [
+          { category: 'FOOD_DINING', amount: 500000, name: 'ï¿½D' },
+          { category: 'TRANSPORTATION', amount: 200000, name: 'Pï¿½D' },
+          { category: 'SHOPPING', amount: 400000, name: 'ï¿½Q' },
           { category: 'ENTERTAINMENT', amount: 200000, name: '$}' },
-          { category: 'UTILITY', amount: 150000, name: 'õü' },
-          { category: 'TRAVEL', amount: 300000, name: 'ì‰' }
+          { category: 'UTILITY', amount: 150000, name: 'ï¿½ï¿½' },
+          { category: 'TRAVEL', amount: 300000, name: 'ï¿½' }
         ]
       };
 
@@ -455,7 +452,7 @@ export class BudgetController {
           category: analysis.category,
           current_avg_monthly: avgMonthlySpend,
           recommended_budget: recommendedBudget,
-          reasoning: `Àœ 3Ô Éà ÀœX 110%\ $Xì ì | PÈµÈä.`,
+          reasoning: `ï¿½ï¿½ 3ï¿½ ï¿½ï¿½ ï¿½ï¿½X 110%\ $Xï¿½ ï¿½ | PÈµï¿½ï¿½.`,
           transaction_count: Number(analysis.transaction_count)
         };
       });
@@ -463,12 +460,207 @@ export class BudgetController {
       res.json({
         success: true,
         data: {
-          analysis_period: '3Ô',
+          analysis_period: '3ï¿½',
           recommendations
         }
       });
     } catch (error) {
       console.error('Get budget recommendations error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error'
+      });
+    }
+  }
+
+  static async getBudgetProgress(req: Request, res: Response) {
+    try {
+      const userId = req.user?.id;
+      const budgetId = req.params.id;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'User not authenticated'
+        });
+      }
+
+      const budget = await Budget.query()
+        .findById(budgetId)
+        .where('user_id', userId);
+
+      if (!budget) {
+        return res.status(404).json({
+          success: false,
+          message: 'Budget not found'
+        });
+      }
+
+      // Calculate detailed progress
+      let spentQuery = Transaction.query()
+        .where('user_id', userId)
+        .where('is_income', false)
+        .where('transaction_date', '>=', budget.start_date)
+        .where('transaction_date', '<=', budget.end_date);
+
+      if (budget.category !== 'TOTAL') {
+        spentQuery = spentQuery.where('category', budget.category);
+      }
+
+      const [spentResult, dailySpending] = await Promise.all([
+        spentQuery.clone().sum('amount as total').first(),
+        spentQuery.clone()
+          .select(Transaction.raw('DATE(transaction_date) as date'))
+          .sum('amount as amount')
+          .groupBy(Transaction.raw('DATE(transaction_date)'))
+          .orderBy('date', 'desc')
+      ]);
+
+      const spentAmount = Number(spentResult?.total || 0);
+      const budgetAmount = Number(budget.amount);
+      const usagePercent = budgetAmount > 0 ? (spentAmount / budgetAmount) * 100 : 0;
+
+      // Calculate time-based metrics
+      const startDate = new Date(budget.start_date);
+      const endDate = new Date(budget.end_date);
+      const currentDate = new Date();
+
+      const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      const daysElapsed = Math.ceil((currentDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      const daysRemaining = Math.max(0, totalDays - daysElapsed);
+
+      const timeProgressPercent = totalDays > 0 ? (daysElapsed / totalDays) * 100 : 0;
+      const dailyAverageSpent = daysElapsed > 0 ? spentAmount / daysElapsed : 0;
+      const recommendedDailySpending = daysRemaining > 0 ? (budgetAmount - spentAmount) / daysRemaining : 0;
+
+      res.json({
+        success: true,
+        data: {
+          budget_id: budgetId,
+          budget_amount: budgetAmount,
+          spent_amount: spentAmount,
+          remaining_amount: budgetAmount - spentAmount,
+          usage_percent: Math.round(usagePercent * 100) / 100,
+          time_progress_percent: Math.round(timeProgressPercent * 100) / 100,
+          days_elapsed: daysElapsed,
+          days_remaining: daysRemaining,
+          daily_average_spent: Math.round(dailyAverageSpent),
+          recommended_daily_spending: Math.round(recommendedDailySpending),
+          is_on_track: usagePercent <= timeProgressPercent,
+          status: usagePercent >= budget.alert_threshold ? 'warning' : 'normal',
+          daily_spending: dailySpending
+        }
+      });
+    } catch (error) {
+      console.error('Get budget progress error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * ì˜ˆì‚° ìš”ì•½ ì •ë³´ ì¡°íšŒ
+   */
+  static async getBudgetSummary(req: Request, res: Response) {
+    try {
+      console.log('=== getBudgetSummary ì‹œì‘ ===');
+      const userId = req.user?.id;
+      console.log('ì‚¬ìš©ì ID:', userId);
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'User not authenticated'
+        });
+      }
+
+      // í™œì„± ì˜ˆì‚° ì¡°íšŒ
+      console.log('ì˜ˆì‚° ì¡°íšŒ ì‹œì‘...');
+      const budgets = await Budget.query()
+        .where('user_id', userId.toString())
+        .where('is_active', true);
+
+      console.log('ì¡°íšŒëœ ì˜ˆì‚°:', budgets);
+
+      if (budgets.length === 0) {
+        console.log('í™œì„± ì˜ˆì‚°ì´ ì—†ìŒ, ê¸°ë³¸ê°’ ë°˜í™˜');
+        return res.json({
+          success: true,
+          data: {
+            totalBudget: 0,
+            totalSpent: 0,
+            totalRemaining: 0,
+            budgetProgress: 0,
+            dailyRecommended: 0,
+            status: 'good'
+          }
+        });
+      }
+
+      // í˜„ì¬ ë‹¬ ë²”ìœ„ ê³„ì‚°
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+      console.log('ì›” ë²”ìœ„:', {
+        startOfMonth: startOfMonth.toISOString(),
+        endOfMonth: endOfMonth.toISOString()
+      });
+
+      // ì´ë²ˆ ë‹¬ ì§€ì¶œ ì´ì•¡ ê³„ì‚°
+      console.log('ê±°ë˜ ë‚´ì—­ ì¡°íšŒ ì‹œì‘...');
+      const transactions = await Transaction.query()
+        .where('user_id', userId.toString())
+        .where('is_income', false)
+        .where('transaction_date', '>=', startOfMonth.toISOString())
+        .where('transaction_date', '<=', endOfMonth.toISOString());
+
+      console.log('ì¡°íšŒëœ ê±°ë˜ ë‚´ì—­:', transactions);
+
+      const totalBudget = budgets.reduce((sum, budget) => sum + budget.amount, 0);
+      const totalSpent = transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+      const totalRemaining = Math.max(0, totalBudget - totalSpent);
+      const budgetProgress = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+
+      // ì¼ì¼ ê¶Œì¥ ì§€ì¶œì•¡ ê³„ì‚°
+      const daysInMonth = endOfMonth.getDate();
+      const daysRemaining = Math.max(1, daysInMonth - now.getDate() + 1);
+      const dailyRecommended = Math.round(totalRemaining / daysRemaining);
+
+      // ìƒíƒœ ê³„ì‚°
+      let status: 'good' | 'warning' | 'over';
+      if (budgetProgress <= 70) {
+        status = 'good';
+      } else if (budgetProgress <= 100) {
+        status = 'warning';
+      } else {
+        status = 'over';
+      }
+
+      console.log('ì˜ˆì‚° ìš”ì•½ ê³„ì‚° ì™„ë£Œ:', {
+        totalBudget,
+        totalSpent,
+        totalRemaining,
+        budgetProgress: Math.round(budgetProgress * 100) / 100,
+        dailyRecommended,
+        status
+      });
+
+      res.json({
+        success: true,
+        data: {
+          totalBudget,
+          totalSpent,
+          totalRemaining,
+          budgetProgress: Math.round(budgetProgress * 100) / 100,
+          dailyRecommended,
+          status
+        }
+      });
+    } catch (error) {
+      console.error('Get budget summary error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error'

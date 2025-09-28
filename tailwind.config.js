@@ -36,7 +36,7 @@ module.exports = {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Pretendard', 'Inter', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         xl: '16px',

@@ -14,7 +14,7 @@ export function TabIcon({ name, focused, color }: TabIconProps) {
   // 깔끔하고 일관성 있는 아이콘들
   const icons = {
     home: '⌂',      // 홈 아이콘
-    chat: '💬',      // 채팅 아이콘  
+    chat: '💬',      // AI 상담 아이콘
     analytics: '📊', // 분석 아이콘
     settings: '⚙',  // 설정 아이콘
   };

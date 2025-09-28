@@ -50,7 +50,8 @@
       "Bash(npm run dev:*)",
       "mcp__playwright__browser_network_requests",
       "mcp__playwright__browser_fill_form",
-      "Read(//tmp/cheonma-branch/**)"
+      "Read(//tmp/cheonma-branch/**)",
+      "Bash(npm run web:*)"
     ],
     "deny": [],
     "ask": []

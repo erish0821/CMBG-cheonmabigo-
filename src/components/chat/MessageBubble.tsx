@@ -151,8 +151,8 @@ export function MessageBubble({
               rounded-2xl px-4 py-3
               ${
                 isUser
-                  ? 'rounded-br-md shadow-lg'
-                  : 'rounded-bl-md border border-gray-100 bg-white shadow-md'
+                  ? 'rounded-br-md'
+                  : 'rounded-bl-md border border-gray-100 bg-white'
               }
             `}
             style={{

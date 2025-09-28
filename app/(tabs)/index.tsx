@@ -225,13 +225,6 @@ export default function HomeScreen() {
             <TouchableOpacity
               className="items-center flex-1 mx-2"
               onPress={() => router.push('/chat')}
-              style={{
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-                elevation: 3,
-              }}
             >
               <View className="w-16 h-16 rounded-full bg-emerald-100 items-center justify-center mb-3 border border-emerald-200">
                 <Text className="text-2xl">📄</Text>
@@ -245,13 +238,6 @@ export default function HomeScreen() {
             <TouchableOpacity
               className="items-center flex-1 mx-2"
               onPress={() => router.push('/chat')}
-              style={{
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-                elevation: 3,
-              }}
             >
               <View className="w-16 h-16 rounded-full bg-purple-600 items-center justify-center mb-3">
                 <Text className="text-2xl text-white">🎤</Text>
@@ -265,13 +251,6 @@ export default function HomeScreen() {
             <TouchableOpacity
               className="items-center flex-1 mx-2"
               onPress={() => router.push('/chat')}
-              style={{
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-                elevation: 3,
-              }}
             >
               <View className="w-16 h-16 rounded-full bg-blue-100 items-center justify-center mb-3 border border-blue-200">
                 <Text className="text-2xl text-blue-600 font-bold">+</Text>

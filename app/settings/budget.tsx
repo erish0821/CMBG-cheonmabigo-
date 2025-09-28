@@ -193,7 +193,6 @@ export default function BudgetScreen() {
       subtitle="월간 예산과 카테고리별 한도를 설정하세요"
       safeArea={true}
       scrollable={true}
-      showBackButton={true}
     >
       {/* 기본 예산 */}
       <SectionContainer>
@@ -263,7 +262,7 @@ export default function BudgetScreen() {
                     <ProgressBar
                       progress={calculateCategoryPercentage(key)}
                       className="h-1"
-                      color={calculateCategoryPercentage(key) > 50 ? '#f59e0b' : '#10b981'}
+                      color={calculateCategoryPercentage(key) > 50 ? 'warning' : 'success'}
                     />
                   </View>
                 )}
@@ -298,7 +297,7 @@ export default function BudgetScreen() {
               <ProgressBar
                 progress={getTotalCategoryPercentage()}
                 className="h-2"
-                color={getTotalCategoryPercentage() > 100 ? '#ef4444' : '#7c3aed'}
+                color={getTotalCategoryPercentage() > 100 ? 'error' : 'primary'}
                 showGradient={true}
               />
             </View>

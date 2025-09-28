@@ -1,5 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, ScrollView, RefreshControl, Text } from 'react-native';
+import {
+  View,
+  ScrollView,
+  RefreshControl,
+  Text,
+  TouchableOpacity,
+  SafeAreaView,
+  StatusBar,
+  Platform,
+} from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   Screen,
@@ -17,7 +26,7 @@ import { AddIcon, AnalyticsIcon } from '../../src/components/ui/Icon';
 import { useRouter } from 'expo-router';
 import { AnalyticsService, AnalyticsData } from '../../src/services/analytics/AnalyticsService';
 import { transactionStorage } from '../../src/services/storage/TransactionStorage';
-import { Transaction } from '../../src/types/transaction';
+import { Transaction, CategoryType } from '../../src/types/transaction';
 import { CATEGORIES } from '../../src/constants/categories';
 import { BudgetProgressChart, InsightCard } from '../../src/components/charts';
 import { useAuthStore } from '../../src/stores/authStore';
@@ -150,17 +159,26 @@ export default function HomeScreen() {
   const { summary, budgetAnalysis, insights } = analyticsData;
 
   return (
-    <Screen
-      title="안녕하세요! 👋"
-      subtitle="오늘도 현명한 소비를 시작해보세요"
-      safeArea={true}
-      scrollable={true}
-    >
+    <SafeAreaView className="flex-1 bg-white">
+      <StatusBar
+        barStyle={Platform.OS === 'ios' ? 'dark-content' : 'light-content'}
+        backgroundColor="#FFFFFF"
+      />
+
       <ScrollView
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        className="flex-1 pb-20 px-4"
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        showsVerticalScrollIndicator={false}
       >
+        {/* 헤더 */}
+        <View className="pt-8 pb-6">
+          <Text className="text-2xl font-bold text-gray-900 mb-2">
+            천마비고
+          </Text>
+          <Text className="text-gray-600">
+            대화하는 AI 가계부
+          </Text>
+        </View>
         {/* 예산 진행률 */}
         {budgetSummary && (
           <SectionContainer>
@@ -204,44 +222,69 @@ export default function HomeScreen() {
           </SectionContainer>
         )}
 
-        {/* 빠른 작업 */}
-        <SectionContainer>
-          <H2 className="mb-4">빠른 작업</H2>
-          <View className="mb-4 flex-row space-x-3">
-            <Card className="flex-1">
-              <Button
-                title="지출 기록"
-                variant="primary"
-                leftIcon={<AddIcon size="sm" color="white" />}
-                onPress={() => router.push('/chat')}
-              />
-            </Card>
-            <Card className="flex-1">
-              <Button
-                title="분석 보기"
-                variant="outline"
-                leftIcon={<AnalyticsIcon size="sm" color="primary" />}
-                onPress={() => router.push('/analytics')}
-              />
-            </Card>
-          </View>
-        </SectionContainer>
+        {/* 빠른 기록 */}
+        <View className="mb-6">
+          <Text className="text-lg font-semibold text-gray-900 mb-4">
+            빠른 기록
+          </Text>
+          <View className="flex-row justify-around items-center">
+            {/* 영수증 촬영 */}
+            <TouchableOpacity
+              className="items-center"
+              onPress={() => router.push('/chat')}
+            >
+              <View className="w-16 h-16 rounded-full bg-green-100 items-center justify-center mb-2">
+                <Text className="text-2xl">📄</Text>
+              </View>
+              <Text className="text-sm text-gray-700">
+                영수증 촬영
+              </Text>
+            </TouchableOpacity>
 
-        {/* 최근 거래 */}
-        <SectionContainer>
-          <View className="mb-4 flex-row items-center justify-between">
-            <H2>최근 거래</H2>
-            <Button
-              title="전체 보기"
-              variant="outline"
-              size="sm"
-              onPress={() => router.push('/analytics')}
-            />
+            {/* 음성 입력 */}
+            <TouchableOpacity
+              className="items-center"
+              onPress={() => router.push('/chat')}
+            >
+              <View className="w-16 h-16 rounded-full bg-purple-600 items-center justify-center mb-2">
+                <Text className="text-2xl">🎤</Text>
+              </View>
+              <Text className="text-sm text-gray-700">
+                음성 입력
+              </Text>
+            </TouchableOpacity>
+
+            {/* 직접 입력 */}
+            <TouchableOpacity
+              className="items-center"
+              onPress={() => router.push('/chat')}
+            >
+              <View className="w-16 h-16 rounded-full bg-purple-600 items-center justify-center mb-2">
+                <Text className="text-2xl text-white">+</Text>
+              </View>
+              <Text className="text-sm text-gray-700">
+                직접 입력
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* 오늘의 지출 */}
+        <View className="mb-6">
+          <View className="flex-row items-center justify-between mb-4">
+            <Text className="text-lg font-semibold text-gray-900" style={{ fontFamily: 'Pretendard' }}>
+              오늘의 지출
+            </Text>
+            <TouchableOpacity onPress={() => router.push('/analytics')}>
+              <Text className="text-sm text-purple-600" style={{ fontFamily: 'Pretendard' }}>
+                전체보기 &gt;
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {recentTransactions.length > 0 ? (
             recentTransactions.map(transaction => {
-              const categoryInfo = CATEGORIES[transaction.category] || CATEGORIES.OTHER;
+              const categoryInfo = CATEGORIES[transaction.category] || CATEGORIES[CategoryType.OTHER];
               const timeAgo = getTimeAgo(transaction.date);
 
               // categoryInfo null 체크
@@ -250,68 +293,53 @@ export default function HomeScreen() {
               }
 
               return (
-                <Card
+                <View
                   key={transaction.id}
-                  className="mb-3"
-                  onPress={() => router.push('/analytics')}
+                  className="flex-row items-center justify-between py-3 border-b border-gray-100"
                 >
-                  <View className="flex-row items-center justify-between">
-                    <View className="flex-1">
-                      <View className="flex-row items-center mb-1">
-                        <Text className="text-lg mr-2">{categoryInfo.icon}</Text>
-                        <H3 className="flex-1">{transaction.description}</H3>
-                      </View>
-                      <View className="flex-row items-center space-x-2">
-                        <Caption className="text-primary-600">
-                          {categoryInfo.name}
-                        </Caption>
-                        {transaction.subcategory && (
-                          <>
-                            <Caption>•</Caption>
-                            <Caption>{transaction.subcategory}</Caption>
-                          </>
-                        )}
-                        <Caption>•</Caption>
-                        <Caption>{timeAgo}</Caption>
-                        {transaction.location && (
-                          <>
-                            <Caption>•</Caption>
-                            <Caption>📍 {transaction.location}</Caption>
-                          </>
-                        )}
-                      </View>
+                  <View className="flex-row items-center flex-1">
+                    <View className="w-10 h-10 rounded-full bg-red-100 items-center justify-center mr-3">
+                      <Text className="text-lg">{categoryInfo.icon}</Text>
                     </View>
-                    <BodyText
-                      className={`text-lg font-semibold ${
-                        transaction.isIncome ? 'text-success' : 'text-text-primary'
-                      }`}
-                    >
-                      {transaction.isIncome ? '+' : ''}₩
-                      {Math.abs(transaction.amount).toLocaleString()}
-                    </BodyText>
+                    <View className="flex-1">
+                      <Text className="font-medium text-gray-900">
+                        {transaction.description}
+                      </Text>
+                      <Text className="text-sm text-gray-500">
+                        {categoryInfo.name} • {timeAgo}
+                      </Text>
+                    </View>
                   </View>
-                </Card>
+                  <Text
+                    className={`text-lg font-semibold ${
+                      transaction.isIncome ? 'text-green-600' : 'text-red-600'
+                    }`}
+                  >
+                    {transaction.isIncome ? '+' : '-'}₩{Math.abs(transaction.amount).toLocaleString()}
+                  </Text>
+                </View>
               );
             })
           ) : (
-            <Card className="p-6">
-              <View className="items-center">
-                <BodyText className="text-secondary-600 text-center">
-                  아직 거래 내역이 없습니다.{'\n'}
-                  AI 코치와 대화하며 첫 지출을 기록해보세요!
-                </BodyText>
-                <Button
-                  title="지출 기록하기"
-                  variant="primary"
-                  size="sm"
-                  leftIcon={<AddIcon size="sm" color="white" />}
-                  onPress={() => router.push('/chat')}
-                  className="mt-4"
-                />
-              </View>
-            </Card>
+            <View className="items-center py-8">
+              <Text className="text-4xl mb-4">💳</Text>
+              <Text className="text-lg font-medium text-gray-900 mb-2" style={{ fontFamily: 'Pretendard' }}>
+                아직 지출이 없어요
+              </Text>
+              <Text className="text-sm text-gray-500 text-center mb-4" style={{ fontFamily: 'Pretendard' }}>
+                AI 코치와 대화하며 첫 지출을 기록해보세요!
+              </Text>
+              <TouchableOpacity
+                className="bg-purple-600 px-6 py-3 rounded-xl"
+                onPress={() => router.push('/chat')}
+              >
+                <Text className="text-white font-semibold" style={{ fontFamily: 'Pretendard' }}>
+                  지출 기록하기
+                </Text>
+              </TouchableOpacity>
+            </View>
           )}
-        </SectionContainer>
+        </View>
 
         {/* 월간 요약 */}
         <SectionContainer>
@@ -351,7 +379,7 @@ export default function HomeScreen() {
           </Card>
         </SectionContainer>
       </ScrollView>
-    </Screen>
+    </SafeAreaView>
   );
 }
 

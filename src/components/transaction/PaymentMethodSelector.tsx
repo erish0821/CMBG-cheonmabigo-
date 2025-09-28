@@ -12,30 +12,25 @@ interface PaymentMethodSelectorProps {
 }
 
 const PAYMENT_METHODS = {
-  card: {
+  [PaymentMethod.CARD]: {
     name: '카드',
     icon: '💳',
     description: '신용카드, 체크카드',
   },
-  cash: {
+  [PaymentMethod.CASH]: {
     name: '현금',
     icon: '💵',
     description: '현금 결제',
   },
-  transfer: {
+  [PaymentMethod.TRANSFER]: {
     name: '계좌이체',
     icon: '🏦',
     description: '온라인 이체, 무통장입금',
   },
-  mobile: {
+  [PaymentMethod.MOBILE_PAY]: {
     name: '모바일결제',
     icon: '📱',
     description: '삼성페이, 애플페이, 페이코 등',
-  },
-  other: {
-    name: '기타',
-    icon: '🔄',
-    description: '기타 결제 수단',
   },
 } as const;
 

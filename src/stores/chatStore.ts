@@ -142,7 +142,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       const budgetIntent = BudgetLLMService.detectBudgetIntent(content);
 
       let aiResponse: string;
-      let messageType: 'text' | 'transaction' | 'advice' | 'budget' = 'text';
+      let messageType: 'text' | 'transaction' | 'advice' | 'budget' | 'chart' = 'text';
       let messageMetadata: any = undefined;
 
       if (budgetIntent.isBudgetRequest && budgetIntent.confidence > 0.6) {
@@ -203,7 +203,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
             };
 
             const mappedCategory = categoryMap[transaction.category] || CategoryType.OTHER;
-            const categoryInfo = CATEGORIES[mappedCategory] || CATEGORIES.OTHER;
+            const categoryInfo = CATEGORIES[mappedCategory] || CATEGORIES[CategoryType.OTHER];
             aiResponse = `✅ 거래를 기록했습니다!\n\n` +
               `💰 ${transaction.isIncome ? '+' : '-'}${Math.abs(transaction.amount).toLocaleString()}원\n` +
               `${categoryInfo.icon} ${categoryInfo.name}${transaction.subcategory ? ` > ${transaction.subcategory}` : ''}\n` +

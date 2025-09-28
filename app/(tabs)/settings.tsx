@@ -1,5 +1,15 @@
 import React, { useState } from 'react';
-import { View, ScrollView, Alert, Switch } from 'react-native';
+import {
+  View,
+  ScrollView,
+  Alert,
+  Switch,
+  Text,
+  TouchableOpacity,
+  SafeAreaView,
+  StatusBar,
+  Platform,
+} from 'react-native';
 import {
   Screen,
   Container,
@@ -207,12 +217,25 @@ export default function SettingsScreen() {
   );
 
   return (
-    <Screen
-      title="설정"
-      subtitle="앱 설정 및 개인화 옵션을 관리하세요"
-      safeArea={true}
-      scrollable={true}
-    >
+    <SafeAreaView className="flex-1 bg-white">
+      <StatusBar
+        barStyle={Platform.OS === 'ios' ? 'dark-content' : 'light-content'}
+        backgroundColor="#FFFFFF"
+      />
+
+      <ScrollView
+        className="flex-1 pb-20 px-4"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* 헤더 */}
+        <View className="pt-8 pb-6">
+          <Text className="text-2xl font-bold text-gray-900 mb-2">
+            설정
+          </Text>
+          <Text className="text-gray-600">
+            앱 설정 및 개인화 옵션을 관리하세요
+          </Text>
+        </View>
       {/* 사용자 정보 */}
       <SectionContainer>
         <Card className="mb-4">
@@ -290,6 +313,7 @@ export default function SettingsScreen() {
           © 2024 천마비고 팀
         </BodyText>
       </View>
-    </Screen>
+      </ScrollView>
+    </SafeAreaView>
   );
 }

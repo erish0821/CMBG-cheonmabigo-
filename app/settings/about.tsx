@@ -82,7 +82,6 @@ export default function AboutScreen() {
       subtitle="천마비고 버전 정보와 개발진을 만나보세요"
       safeArea={true}
       scrollable={true}
-      showBackButton={true}
     >
       {/* 앱 기본 정보 */}
       <SectionContainer>

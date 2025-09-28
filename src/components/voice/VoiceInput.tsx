@@ -342,23 +342,6 @@ export function VoiceInput({
         </Animated.View>
       </Animated.View>
 
-      {/* 상태 텍스트 */}
-      <Text className="mt-2 text-xs text-gray-500">
-        {isRecording
-          ? '말씀하세요...'
-          : isProcessing
-            ? '처리 중...'
-            : disabled
-              ? '사용할 수 없음'
-              : '탭하여 음성 입력'}
-      </Text>
-
-      {/* 도움말 텍스트 */}
-      {!isRecording && !isProcessing && !disabled && (
-        <Text className="mt-1 text-xs text-gray-400">
-          길게 누르면 연속 입력
-        </Text>
-      )}
     </View>
   );
 }

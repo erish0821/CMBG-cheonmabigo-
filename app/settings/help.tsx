@@ -127,7 +127,7 @@ export default function HelpScreen() {
       subtitle="천마비고 사용법과 FAQ를 확인하세요"
       safeArea={true}
       scrollable={true}
-      showBackButton={true}
+
     >
       {/* 빠른 시작 가이드 */}
       <SectionContainer>

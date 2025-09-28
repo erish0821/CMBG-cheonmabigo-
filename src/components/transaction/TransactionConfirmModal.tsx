@@ -56,10 +56,10 @@ export const TransactionConfirmModal: React.FC<TransactionConfirmModalProps> = (
         date: editedTransaction.date || new Date(),
         isIncome: editedTransaction.isIncome || false,
         tags: editedTransaction.tags || [],
-        note: editedTransaction.note,
-        originalText: editedTransaction.originalText,
+        originalText: editedTransaction.originalText || '',
         aiParsed: editedTransaction.aiParsed || false,
-        confidence: editedTransaction.confidence,
+        userModified: isEditing || false,
+        confidence: editedTransaction.confidence || 0,
       };
 
       await onConfirm(finalTransaction);
@@ -162,14 +162,6 @@ export const TransactionConfirmModal: React.FC<TransactionConfirmModalProps> = (
                     placeholder="예: 강남역 스타벅스"
                   />
 
-                  <Input
-                    label="메모 (선택사항)"
-                    value={editedTransaction.note || ''}
-                    onChangeText={(text) => setEditedTransaction(prev => ({ ...prev, note: text }))}
-                    placeholder="추가 메모를 입력하세요"
-                    multiline
-                    numberOfLines={3}
-                  />
                 </View>
               ) : (
                 <View className="space-y-3">
@@ -214,12 +206,6 @@ export const TransactionConfirmModal: React.FC<TransactionConfirmModalProps> = (
                     </View>
                   )}
 
-                  {editedTransaction.note && (
-                    <View>
-                      <BodyText className="text-gray-600 mb-1">메모</BodyText>
-                      <BodyText className="font-semibold">{editedTransaction.note}</BodyText>
-                    </View>
-                  )}
                 </View>
               )}
             </Card>

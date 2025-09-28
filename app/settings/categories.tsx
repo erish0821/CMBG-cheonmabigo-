@@ -191,7 +191,7 @@ export default function CategoriesScreen() {
       subtitle="지출 카테고리를 추가하고 관리하세요"
       safeArea={true}
       scrollable={true}
-      showBackButton={true}
+
     >
       {/* 카테고리 현황 */}
       <SectionContainer>

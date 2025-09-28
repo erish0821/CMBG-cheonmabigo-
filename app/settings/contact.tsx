@@ -148,7 +148,7 @@ export default function ContactScreen() {
       subtitle="개발팀에 문의하고 피드백을 보내주세요"
       safeArea={true}
       scrollable={true}
-      showBackButton={true}
+
     >
       {/* 빠른 연락 방법 */}
       <SectionContainer>

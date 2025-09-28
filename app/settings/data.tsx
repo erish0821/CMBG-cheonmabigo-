@@ -187,7 +187,7 @@ export default function DataManagementScreen() {
       subtitle="데이터 백업, 내보내기, 초기화를 관리하세요"
       safeArea={true}
       scrollable={true}
-      showBackButton={true}
+
     >
       {/* 데이터 현황 */}
       <SectionContainer>

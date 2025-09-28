@@ -5,7 +5,7 @@ export interface Message {
   content: string;
   sender: 'user' | 'ai';
   timestamp: Date;
-  type: 'text' | 'transaction' | 'chart' | 'advice';
+  type: 'text' | 'transaction' | 'chart' | 'advice' | 'budget';
   status: 'sending' | 'sent' | 'error';
   metadata?: {
     transaction?: {
@@ -20,6 +20,12 @@ export interface Message {
     advice?: {
       suggestions: string[];
       analysis: string;
+    };
+    budget?: {
+      name?: string;
+      amount?: number;
+      period?: string;
+      categories?: string[];
     };
   };
 }

@@ -41,7 +41,10 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
               <BodyText className="text-2xl mr-3">{selectedCategoryInfo.icon}</BodyText>
               <View className="flex-1">
                 <BodyText className="font-semibold">{selectedCategoryInfo.name}</BodyText>
-                <Caption className="text-gray-600">{selectedCategoryInfo.description}</Caption>
+                <Caption className="text-gray-600">
+                  {selectedCategoryInfo.subcategories.slice(0, 2).join(', ')}
+                  {selectedCategoryInfo.subcategories.length > 2 ? ' 외' : ''}
+                </Caption>
               </View>
             </View>
           ) : (
@@ -89,14 +92,9 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
                           {categoryData.name}
                         </BodyText>
                         <Caption className="text-gray-600 mt-1">
-                          {categoryData.description}
+                          {categoryData.subcategories.slice(0, 3).join(', ')}
+                          {categoryData.subcategories.length > 3 ? ' 외' : ''}
                         </Caption>
-                        {categoryData.subcategories.length > 0 && (
-                          <Caption className="text-gray-500 mt-1">
-                            {categoryData.subcategories.slice(0, 3).join(', ')}
-                            {categoryData.subcategories.length > 3 ? ' 외' : ''}
-                          </Caption>
-                        )}
                       </View>
                       {selectedCategory === categoryKey && (
                         <View className="w-6 h-6 rounded-full bg-primary-500 items-center justify-center">

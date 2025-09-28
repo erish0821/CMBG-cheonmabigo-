@@ -1,5 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, ScrollView, TouchableOpacity, RefreshControl, Text } from 'react-native';
+import {
+  View,
+  ScrollView,
+  TouchableOpacity,
+  RefreshControl,
+  Text,
+  SafeAreaView,
+  StatusBar,
+  Platform,
+} from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   Screen,
@@ -226,39 +235,49 @@ export default function AnalyticsScreen() {
   const { summary, monthlyTrends, weeklyPatterns, budgetAnalysis, insights, categoryTrends } = analyticsData;
 
   return (
-    <Screen
-      title="지출 분석"
-      subtitle="나의 소비 패턴을 한눈에 확인해보세요"
-      safeArea={true}
-      scrollable={true}
-    >
+    <SafeAreaView className="flex-1 bg-white">
+      <StatusBar
+        barStyle={Platform.OS === 'ios' ? 'dark-content' : 'light-content'}
+        backgroundColor="#FFFFFF"
+      />
+
       <ScrollView
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        className="flex-1 pb-20 px-4"
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        showsVerticalScrollIndicator={false}
       >
+        {/* 헤더 */}
+        <View className="pt-8 pb-6">
+          <Text className="text-2xl font-bold text-gray-900 mb-2">
+            지출 분석
+          </Text>
+          <Text className="text-gray-600">
+            나의 소비 패턴을 확인해보세요
+          </Text>
+        </View>
+
         {/* 기간 선택 */}
-        <SectionContainer>
-          <View className="mb-4 flex-row space-x-2">
+        <View className="mb-6">
+          <View className="flex-row space-x-2">
             {periods.map(period => (
               <TouchableOpacity
                 key={period.key}
                 className={`flex-1 rounded-lg px-4 py-3 ${
-                  selectedPeriod === period.key ? 'bg-primary-600' : 'bg-gray-100'
+                  selectedPeriod === period.key ? 'bg-purple-600' : 'bg-gray-100'
                 }`}
                 onPress={() => setSelectedPeriod(period.key)}
               >
-                <BodyText
+                <Text
                   className={`text-center font-medium ${
                     selectedPeriod === period.key ? 'text-white' : 'text-gray-600'
                   }`}
                 >
                   {period.label}
-                </BodyText>
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
-        </SectionContainer>
+        </View>
 
         {/* 일일 달력 차트 (일일 모드일 때만 표시) */}
         {selectedPeriod === 'day' && analyticsData && (
@@ -465,6 +484,6 @@ export default function AnalyticsScreen() {
           </View>
         </SectionContainer>
       </ScrollView>
-    </Screen>
+    </SafeAreaView>
   );
 }

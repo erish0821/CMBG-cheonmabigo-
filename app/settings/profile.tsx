@@ -137,7 +137,7 @@ export default function ProfileScreen() {
       subtitle="개인정보를 수정하고 관리하세요"
       safeArea={true}
       scrollable={true}
-      showBackButton={true}
+
     >
       {/* 기본 정보 */}
       <SectionContainer>

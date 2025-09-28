@@ -217,45 +217,66 @@ export default function HomeScreen() {
 
         {/* 빠른 기록 */}
         <View className="mb-6">
-          <Text className="text-lg font-semibold text-gray-900 mb-4">
+          <Text className="text-lg font-semibold text-gray-900 mb-4" style={{ fontFamily: 'Pretendard' }}>
             빠른 기록
           </Text>
-          <View className="flex-row justify-around items-center">
+          <View className="flex-row justify-around items-center px-4">
             {/* 영수증 촬영 */}
             <TouchableOpacity
-              className="items-center"
+              className="items-center flex-1 mx-2"
               onPress={() => router.push('/chat')}
+              style={{
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 3,
+              }}
             >
-              <View className="w-16 h-16 rounded-full bg-green-100 items-center justify-center mb-2">
+              <View className="w-16 h-16 rounded-full bg-emerald-100 items-center justify-center mb-3 border border-emerald-200">
                 <Text className="text-2xl">📄</Text>
               </View>
-              <Text className="text-sm text-gray-700">
+              <Text className="text-sm text-gray-700 text-center font-medium" style={{ fontFamily: 'Pretendard' }}>
                 영수증 촬영
               </Text>
             </TouchableOpacity>
 
             {/* 음성 입력 */}
             <TouchableOpacity
-              className="items-center"
+              className="items-center flex-1 mx-2"
               onPress={() => router.push('/chat')}
+              style={{
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 3,
+              }}
             >
-              <View className="w-16 h-16 rounded-full bg-purple-600 items-center justify-center mb-2">
-                <Text className="text-2xl">🎤</Text>
+              <View className="w-16 h-16 rounded-full bg-purple-600 items-center justify-center mb-3">
+                <Text className="text-2xl text-white">🎤</Text>
               </View>
-              <Text className="text-sm text-gray-700">
+              <Text className="text-sm text-gray-700 text-center font-medium" style={{ fontFamily: 'Pretendard' }}>
                 음성 입력
               </Text>
             </TouchableOpacity>
 
             {/* 직접 입력 */}
             <TouchableOpacity
-              className="items-center"
+              className="items-center flex-1 mx-2"
               onPress={() => router.push('/chat')}
+              style={{
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 3,
+              }}
             >
-              <View className="w-16 h-16 rounded-full bg-purple-600 items-center justify-center mb-2">
-                <Text className="text-2xl text-white">+</Text>
+              <View className="w-16 h-16 rounded-full bg-blue-100 items-center justify-center mb-3 border border-blue-200">
+                <Text className="text-2xl text-blue-600 font-bold">+</Text>
               </View>
-              <Text className="text-sm text-gray-700">
+              <Text className="text-sm text-gray-700 text-center font-medium" style={{ fontFamily: 'Pretendard' }}>
                 직접 입력
               </Text>
             </TouchableOpacity>

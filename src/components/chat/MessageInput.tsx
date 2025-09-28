@@ -114,7 +114,7 @@ export function MessageInput({
               }}
               size="small"
               disabled={isLoading}
-              placeholder="음성으로 지출 내역을 말씀해주세요"
+              placeholder="음성 입력"
             />
           )}
 

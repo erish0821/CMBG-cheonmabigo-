@@ -115,24 +115,25 @@ export function DailyCalendarChart({ data, selectedDate, onDatePress }: DailyCal
     return (
       <TouchableOpacity
         key={date.toISOString()}
-        className={`flex-1 aspect-square items-center justify-center border ${borderColor} ${backgroundColor} rounded-lg m-0.5`}
+        className={`flex-1 items-center justify-center border ${borderColor} ${backgroundColor} rounded-lg m-0.5 min-h-[48px]`}
         onPress={() => onDatePress?.(date, dayData)}
         disabled={!isCurrentMonth}
+        style={{ aspectRatio: 1 }}
       >
-        <View className="items-center justify-center flex-1 w-full">
-          <BodyText className={`text-sm font-medium ${textColor}`}>
+        <View className="items-center justify-center flex-1 w-full p-1">
+          <BodyText className={`text-sm font-medium ${textColor} mb-0.5`}>
             {date.getDate()}
           </BodyText>
 
           {hasData && isCurrentMonth && (
-            <View className="mt-1 w-full px-1">
+            <View className="w-full">
               {dayData.income > 0 && (
-                <BodyText className="text-xs text-green-700 font-medium text-center">
+                <BodyText className="text-[10px] text-green-700 font-medium text-center leading-tight">
                   +{formatAmount(dayData.income)}
                 </BodyText>
               )}
               {dayData.expense > 0 && (
-                <BodyText className="text-xs text-red-700 font-medium text-center">
+                <BodyText className="text-[10px] text-red-700 font-medium text-center leading-tight">
                   -{formatAmount(dayData.expense)}
                 </BodyText>
               )}

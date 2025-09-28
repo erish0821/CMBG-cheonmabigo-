@@ -11,6 +11,7 @@ import * as Clipboard from 'expo-clipboard';
 import { useChatStore } from '../../stores/chatStore';
 import { MessageList } from '../../components/chat/MessageList';
 import { MessageInput } from '../../components/chat/MessageInput';
+import { SogyoAvatar } from '../../components/ui/SogyoAvatar';
 
 export function ChatScreen() {
   const {
@@ -77,14 +78,19 @@ export function ChatScreen() {
       />
 
       {/* 헤더 */}
-      <View className="bg-primary-600 px-4 py-3 shadow-md">
+      <View style={{ backgroundColor: '#7C3AED' }} className="px-4 py-3 shadow-md">
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center">
-            <View className="mr-3 h-8 w-8 rounded-full bg-white/20" />
+            <SogyoAvatar 
+              size={40} 
+              showBorder={true} 
+              borderColor="#FFFFFF"
+              style={{ marginRight: 12 }}
+            />
             <View>
-              <Text className="text-lg font-bold text-white">천마비고</Text>
+              <Text className="text-lg font-bold text-white">소교</Text>
               <Text className="text-sm text-white/80">
-                {isTyping ? '입력 중...' : '개인 재정 AI 코치'}
+                {isTyping ? '생각하는 중...' : '천마비고 AI 재정 코치'}
               </Text>
             </View>
           </View>

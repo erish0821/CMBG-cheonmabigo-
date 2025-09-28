@@ -1,29 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Text } from 'react-native';
-
-function TabBarIcon({
-  name,
-  color,
-  focused,
-}: {
-  name: 'home' | 'chat' | 'analytics' | 'settings';
-  color: string;
-  focused: boolean;
-}) {
-  const icons = {
-    home: '🏠',
-    chat: '💬',
-    analytics: '📊',
-    settings: '⚙️',
-  };
-
-  return (
-    <Text style={{ color: focused ? '#7c3aed' : '#6b7280', fontSize: 20 }}>
-      {icons[name]}
-    </Text>
-  );
-}
+import { Text, View, Platform } from 'react-native';
+import { TabIcon } from '../../src/components/ui/TabIcon';
 
 export default function TabLayout() {
   return (
@@ -31,19 +9,35 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#ffffff',
-          borderTopWidth: 1,
-          borderTopColor: '#e5e7eb',
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 0,
+          elevation: Platform.OS === 'android' ? 20 : 0,
+          shadowColor: '#000000',
+          shadowOffset: { width: 0, height: -8 },
+          shadowOpacity: 0.08,
+          shadowRadius: 20,
           height: 88,
-          paddingBottom: 20,
+          paddingBottom: Platform.OS === 'ios' ? 20 : 16,
           paddingTop: 12,
+          borderTopLeftRadius: 28,
+          borderTopRightRadius: 28,
+          position: 'absolute',
+          borderTopColor: 'rgba(124, 58, 237, 0.05)',
+          borderTopWidth: 1,
         },
-        tabBarActiveTintColor: '#7c3aed',
-        tabBarInactiveTintColor: '#6b7280',
+        tabBarActiveTintColor: '#7C3AED',
+        tabBarInactiveTintColor: '#9CA3AF',
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
+          fontSize: 11,
+          fontWeight: '600',
           marginTop: 4,
+          marginBottom: 2,
+          fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
+          letterSpacing: 0.2,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 6,
+          paddingHorizontal: 4,
         },
       }}
     >
@@ -52,17 +46,7 @@ export default function TabLayout() {
         options={{
           title: '홈',
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name="home" color={color} focused={focused} />
-          ),
-          tabBarIconStyle: { display: 'none' },
-          tabBarLabel: ({ focused }) => (
-            <Text style={{
-              color: focused ? '#7c3aed' : '#6b7280',
-              fontSize: 12,
-              marginTop: -15
-            }}>
-              🏠 홈
-            </Text>
+            <TabIcon name="home" color={color} focused={focused} />
           ),
         }}
       />
@@ -71,17 +55,7 @@ export default function TabLayout() {
         options={{
           title: 'AI 상담',
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name="chat" color={color} focused={focused} />
-          ),
-          tabBarIconStyle: { display: 'none' },
-          tabBarLabel: ({ focused }) => (
-            <Text style={{
-              color: focused ? '#7c3aed' : '#6b7280',
-              fontSize: 12,
-              marginTop: -15
-            }}>
-              💬 AI 상담
-            </Text>
+            <TabIcon name="chat" color={color} focused={focused} />
           ),
         }}
       />
@@ -90,17 +64,7 @@ export default function TabLayout() {
         options={{
           title: '분석',
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name="analytics" color={color} focused={focused} />
-          ),
-          tabBarIconStyle: { display: 'none' },
-          tabBarLabel: ({ focused }) => (
-            <Text style={{
-              color: focused ? '#7c3aed' : '#6b7280',
-              fontSize: 12,
-              marginTop: -15
-            }}>
-              📊 분석
-            </Text>
+            <TabIcon name="analytics" color={color} focused={focused} />
           ),
         }}
       />
@@ -109,17 +73,7 @@ export default function TabLayout() {
         options={{
           title: '설정',
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name="settings" color={color} focused={focused} />
-          ),
-          tabBarIconStyle: { display: 'none' },
-          tabBarLabel: ({ focused }) => (
-            <Text style={{
-              color: focused ? '#7c3aed' : '#6b7280',
-              fontSize: 12,
-              marginTop: -15
-            }}>
-              ⚙️ 설정
-            </Text>
+            <TabIcon name="settings" color={color} focused={focused} />
           ),
         }}
       />

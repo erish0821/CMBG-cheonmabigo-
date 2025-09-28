@@ -33,6 +33,7 @@ import {
 } from '../../src/components/ui/Icon';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../src/stores/authStore';
+import { AppHeader } from '../../src/components/ui/AppHeader';
 
 interface SettingItem {
   title: string;
@@ -218,24 +219,16 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <StatusBar
-        barStyle={Platform.OS === 'ios' ? 'dark-content' : 'light-content'}
-        backgroundColor="#FFFFFF"
+      <AppHeader 
+        title="설정"
+        subtitle="앱 설정 및 개인화 옵션"
+        showAvatar={true}
       />
 
       <ScrollView
         className="flex-1 pb-20 px-4"
         showsVerticalScrollIndicator={false}
       >
-        {/* 헤더 */}
-        <View className="pt-8 pb-6">
-          <Text className="text-2xl font-bold text-gray-900 mb-2">
-            설정
-          </Text>
-          <Text className="text-gray-600">
-            앱 설정 및 개인화 옵션을 관리하세요
-          </Text>
-        </View>
       {/* 사용자 정보 */}
       <SectionContainer>
         <Card className="mb-4">

@@ -3,6 +3,7 @@ import { View, Text, Pressable, Alert } from 'react-native';
 import { MessageBubbleProps } from '../../types/chat';
 import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import { SogyoAvatar } from '../ui/SogyoAvatar';
 
 export function MessageBubble({
   message,
@@ -134,30 +135,46 @@ export function MessageBubble({
 
   return (
     <View className={`mb-4 ${isUser ? 'items-end' : 'items-start'}`}>
-      <Pressable
-        onLongPress={handleLongPress}
-        className={`
-          max-w-[80%] rounded-2xl px-4 py-3
-          ${
-            isUser
-              ? 'rounded-br-md bg-gradient-to-r from-primary-500 to-primary-600 shadow-lg'
-              : 'rounded-bl-md border border-gray-100 bg-white shadow-md'
-          }
-        `}
-      >
-        {renderMessageContent()}
+      <View className={`flex-row items-end ${isUser ? 'flex-row-reverse' : ''}`}>
+        {/* AI 메시지에만 소교 아바타 표시 */}
+        {!isUser && (
+          <SogyoAvatar 
+            size={32} 
+            style={{ marginRight: 8, marginBottom: 4 }}
+          />
+        )}
+        
+        <View className="flex-1 max-w-[75%]">
+          <Pressable
+            onLongPress={handleLongPress}
+            className={`
+              rounded-2xl px-4 py-3
+              ${
+                isUser
+                  ? 'rounded-br-md shadow-lg'
+                  : 'rounded-bl-md border border-gray-100 bg-white shadow-md'
+              }
+            `}
+            style={{
+              backgroundColor: isUser ? '#7C3AED' : '#FFFFFF',
+            }}
+          >
+            {renderMessageContent()}
 
-        {isUser && getStatusIndicator()}
-      </Pressable>
+            {isUser && getStatusIndicator()}
+          </Pressable>
 
-      <Text
-        className={`mt-1 text-xs text-gray-400 ${isUser ? 'text-right' : 'text-left'}`}
-      >
-        {formatDistanceToNow(message.timestamp, {
-          addSuffix: true,
-          locale: ko,
-        })}
-      </Text>
+          <Text
+            className={`mt-1 text-xs text-gray-400 ${isUser ? 'text-right' : 'text-left'}`}
+            style={{ marginLeft: isUser ? 0 : 8 }}
+          >
+            {formatDistanceToNow(message.timestamp, {
+              addSuffix: true,
+              locale: ko,
+            })}
+          </Text>
+        </View>
+      </View>
     </View>
   );
 }

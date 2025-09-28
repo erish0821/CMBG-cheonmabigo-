@@ -31,6 +31,7 @@ import { CATEGORIES } from '../../src/constants/categories';
 import { BudgetProgressChart, InsightCard } from '../../src/components/charts';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useBudgetStore } from '../../src/stores/budgetStore';
+import { AppHeader } from '../../src/components/ui/AppHeader';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -160,9 +161,10 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <StatusBar
-        barStyle={Platform.OS === 'ios' ? 'dark-content' : 'light-content'}
-        backgroundColor="#FFFFFF"
+      <AppHeader 
+        title="천마비고"
+        subtitle="대화하는 AI 가계부"
+        showAvatar={true}
       />
 
       <ScrollView
@@ -170,15 +172,6 @@ export default function HomeScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* 헤더 */}
-        <View className="pt-8 pb-6">
-          <Text className="text-2xl font-bold text-gray-900 mb-2">
-            천마비고
-          </Text>
-          <Text className="text-gray-600">
-            대화하는 AI 가계부
-          </Text>
-        </View>
         {/* 예산 진행률 */}
         {budgetSummary && (
           <SectionContainer>

@@ -1,0 +1,37 @@
+{
+  "documents": [],
+  "tables_parsed": [],
+  "tables_source_info": [],
+  "images": [
+    {
+      "original_name": "cute_female_cheonma_v2_20250927063044_1",
+      "file_name": "cute_female_cheonma_v2_20250927063044_1.webp",
+      "file_path": "/workspace/mascot_app/public/images/cute_female_cheonma_v2_20250927063044_1.webp",
+      "rel_path": "images/cute_female_cheonma_v2_20250927063044_1.webp",
+      "file_type": "webp",
+      "category": "images"
+    }
+  ],
+  "summary": {
+    "total_files": 2,
+    "by_category": {
+      "documents": 0,
+      "tables_parsed": 0,
+      "tables_source_info": 0,
+      "images": 1,
+      "document": 1
+    },
+    "processing_time": null
+  },
+  "document": [
+    {
+      "original_name": "SYSTEM_OVERVIEW",
+      "file_name": "SYSTEM_OVERVIEW.md",
+      "file_path": "/workspace/mascot_app/uploaded_files/documents/SYSTEM_OVERVIEW.md",
+      "file_type": "md",
+      "category": "document",
+      "summary": "Processed SYSTEM_OVERVIEW for coding",
+      "source_id": "1971912846738251776"
+    }
+  ]
+}

@@ -43,6 +43,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useBudgetStore } from '../../src/stores/budgetStore';
 import { useAuthStore } from '../../src/stores/authStore';
+import { AppHeader } from '../../src/components/ui/AppHeader';
 
 export default function AnalyticsScreen() {
   const router = useRouter();
@@ -236,9 +237,10 @@ export default function AnalyticsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <StatusBar
-        barStyle={Platform.OS === 'ios' ? 'dark-content' : 'light-content'}
-        backgroundColor="#FFFFFF"
+      <AppHeader 
+        title="지출 분석"
+        subtitle="나의 소비 패턴을 확인해보세요"
+        showAvatar={true}
       />
 
       <ScrollView
@@ -246,15 +248,6 @@ export default function AnalyticsScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* 헤더 */}
-        <View className="pt-8 pb-6">
-          <Text className="text-2xl font-bold text-gray-900 mb-2">
-            지출 분석
-          </Text>
-          <Text className="text-gray-600">
-            나의 소비 패턴을 확인해보세요
-          </Text>
-        </View>
 
         {/* 기간 선택 */}
         <View className="mb-6">

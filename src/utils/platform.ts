@@ -125,9 +125,9 @@ export const PlatformAPI = {
    */
   getBaseURL: (): string => {
     return PlatformUtils.select({
-      web: 'http://localhost:3000', // 웹에서는 로컬 개발 서버
-      android: 'http://10.0.2.2:3000', // Android 에뮬레이터에서는 호스트 접근
-      default: 'http://localhost:3000',
+      web: 'http://localhost:3001', // 웹에서는 로컬 개발 서버
+      android: 'http://10.0.2.2:3001', // Android 에뮬레이터에서는 호스트 접근
+      default: 'http://localhost:3001',
     });
   },
 

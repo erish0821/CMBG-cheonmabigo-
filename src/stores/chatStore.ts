@@ -189,21 +189,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
           if (transaction) {
             // 성공적으로 거래가 기록됨
-            // 백엔드 카테고리명을 CategoryType으로 매핑
-            const categoryMap: Record<string, CategoryType> = {
-              'FOOD_DINING': CategoryType.FOOD,
-              'TRANSPORTATION': CategoryType.TRANSPORT,
-              'ENTERTAINMENT': CategoryType.ENTERTAINMENT,
-              'SHOPPING': CategoryType.SHOPPING,
-              'HEALTHCARE': CategoryType.HEALTHCARE,
-              'EDUCATION': CategoryType.EDUCATION,
-              'UTILITIES': CategoryType.UTILITIES,
-              'HOUSING': CategoryType.HOUSING,
-              'INCOME': CategoryType.INCOME,
-            };
-
-            const mappedCategory = categoryMap[transaction.category] || CategoryType.OTHER;
-            const categoryInfo = CATEGORIES[mappedCategory] || CATEGORIES[CategoryType.OTHER];
+            const categoryInfo = CATEGORIES[transaction.category] || CATEGORIES[CategoryType.OTHER];
             aiResponse = `✅ 거래를 기록했습니다!\n\n` +
               `💰 ${transaction.isIncome ? '+' : '-'}${Math.abs(transaction.amount).toLocaleString()}원\n` +
               `${categoryInfo.icon} ${categoryInfo.name}${transaction.subcategory ? ` > ${transaction.subcategory}` : ''}\n` +

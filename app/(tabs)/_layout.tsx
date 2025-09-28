@@ -23,7 +23,6 @@ export default function TabLayout() {
           borderTopRightRadius: 28,
           position: 'absolute',
           borderTopColor: 'rgba(124, 58, 237, 0.05)',
-          borderTopWidth: 1,
         },
         tabBarActiveTintColor: '#7C3AED',
         tabBarInactiveTintColor: '#9CA3AF',

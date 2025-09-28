@@ -31,7 +31,7 @@ export const H1: React.FC<HeadingProps> = ({
   return (
     <Text
       className={`text-4xl font-bold leading-tight ${getColorClass()} ${className}`}
-      style={{ fontFamily: 'Pretendard', ...props.style }}
+      style={{ fontFamily: 'Pretendard', ...(props.style || {}) }}
       {...props}
     >
       {children}
@@ -63,7 +63,7 @@ export const H2: React.FC<HeadingProps> = ({
   return (
     <Text
       className={`text-2xl font-semibold leading-snug ${getColorClass()} ${className}`}
-      style={{ fontFamily: 'Pretendard', ...props.style }}
+      style={{ fontFamily: 'Pretendard', ...(props.style || {}) }}
       {...props}
     >
       {children}
@@ -95,7 +95,7 @@ export const H3: React.FC<HeadingProps> = ({
   return (
     <Text
       className={`text-xl font-semibold leading-snug ${getColorClass()} ${className}`}
-      style={{ fontFamily: 'Pretendard', ...props.style }}
+      style={{ fontFamily: 'Pretendard', ...(props.style || {}) }}
       {...props}
     >
       {children}
@@ -163,7 +163,7 @@ export const BodyText: React.FC<BodyTextProps> = ({
   return (
     <Text
       className={`leading-relaxed ${getSizeClass()} ${getWeightClass()} ${getVariantClass()} ${className}`}
-      style={{ fontFamily: 'Pretendard', ...props.style }}
+      style={{ fontFamily: 'Pretendard', ...(props.style || {}) }}
       {...props}
     >
       {children}
@@ -203,7 +203,7 @@ export const Caption: React.FC<CaptionProps> = ({
   return (
     <Text
       className={`text-sm font-normal leading-normal ${getVariantClass()} ${className}`}
-      style={{ fontFamily: 'Pretendard', ...props.style }}
+      style={{ fontFamily: 'Pretendard', ...(props.style || {}) }}
       {...props}
     >
       {children}
@@ -237,7 +237,7 @@ export const Label: React.FC<CaptionProps> = ({
   return (
     <Text
       className={`text-sm font-medium leading-normal ${getVariantClass()} ${className}`}
-      style={{ fontFamily: 'Pretendard', ...props.style }}
+      style={{ fontFamily: 'Pretendard', ...(props.style || {}) }}
       {...props}
     >
       {children}

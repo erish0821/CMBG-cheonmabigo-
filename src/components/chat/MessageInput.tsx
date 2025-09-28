@@ -1,52 +1,12 @@
-import React, { useState, useRef } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   TextInput,
   Pressable,
-  Platform,
-  Keyboard,
-  KeyboardAvoidingView,
-  Animated,
+  StyleSheet,
 } from 'react-native';
 import { MessageInputProps } from '../../types/chat';
-import { VoiceInput } from '../voice/VoiceInput';
-
-// 간단한 아이콘 컴포넌트들 (웹 호환성 개선)
-const SendIcon = ({ color = '#7C3AED', size = 24 }) => (
-  <View
-    style={{
-      width: size,
-      height: size,
-      backgroundColor: color,
-      borderRadius: size / 2,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}
-  >
-    <Text style={{ color: 'white', fontSize: size * 0.4, fontWeight: 'bold' }}>
-      →
-    </Text>
-  </View>
-);
-
-const VoiceIcon = ({ color = '#6B7280', size = 24 }) => (
-  <View
-    style={{
-      width: size,
-      height: size,
-      backgroundColor: color,
-      borderRadius: 4,
-      opacity: 0.7,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}
-  >
-    <Text style={{ color: 'white', fontSize: size * 0.4 }}>🎤</Text>
-  </View>
-);
 
 export function MessageInput({
   value,
@@ -56,150 +16,107 @@ export function MessageInput({
   isLoading = false,
   placeholder = '메시지를 입력하세요...',
 }: MessageInputProps) {
-  const [inputHeight, setInputHeight] = useState(44);
-  const [isFocused, setIsFocused] = useState(false);
-  const inputRef = useRef<TextInput>(null);
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  const handleSend = () => {
-    console.log('🎯 handleSend 호출됨:', { value: value.trim(), isLoading });
-    if (value.trim() && !isLoading) {
-      console.log('✅ onSend 호출 시도');
-      onSend();
-      Keyboard.dismiss();
-    } else {
-      console.log('❌ onSend 호출 안됨 - 조건 불만족');
-    }
-  };
-
-  const handleVoicePress = () => {
-    if (onVoicePress) {
-      Animated.sequence([
-        Animated.timing(scaleAnim, {
-          toValue: 0.95,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 1,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-      ]).start();
-
-      onVoicePress();
-    }
-  };
-
   const canSend = value.trim().length > 0 && !isLoading;
 
+  const handleSend = () => {
+    if (canSend) {
+      onSend();
+    }
+  };
+
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-    >
-      <View className="border-t border-gray-100 bg-white px-4 py-3">
-        <View className="flex-row items-end" style={{ gap: 12 }}>
-          {/* 음성 입력 컴포넌트 */}
-          {onVoicePress && (
-            <VoiceInput
-              onSpeechResult={text => {
-                onChangeText(text);
-                if (text.trim()) {
-                  setTimeout(() => handleSend(), 100);
-                }
-              }}
-              onError={error => {
-                console.error('Voice input error:', error);
-              }}
-              size="small"
-              disabled={isLoading}
-              placeholder="음성 입력"
-            />
-          )}
+    <View style={styles.container}>
+      <View style={styles.inputRow}>
+        <Pressable onPress={onVoicePress} style={styles.voiceButton}>
+          <Text style={styles.buttonText}>🎤</Text>
+        </Pressable>
 
-          {/* 텍스트 입력 영역 */}
-          <View className="relative flex-1">
-            <TextInput
-              ref={inputRef}
-              value={value}
-              onChangeText={onChangeText}
-              placeholder={placeholder}
-              placeholderTextColor="#9CA3AF"
-              multiline
-              maxLength={500}
-              style={{
-                height: Math.max(44, inputHeight),
-                maxHeight: 120,
-              }}
-              onContentSizeChange={event => {
-                setInputHeight(event.nativeEvent.contentSize.height);
-              }}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              className={`
-                rounded-2xl bg-gray-50 px-4 py-3 text-base text-gray-800
-                ${isFocused ? 'border-2 border-primary-500' : 'border border-gray-200'}
-              `}
-              textAlignVertical="top"
-              scrollEnabled={false}
-              returnKeyType="send"
-              onSubmitEditing={handleSend}
-              blurOnSubmit={false}
-              editable={!isLoading}
-            />
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          style={styles.textInput}
+          placeholderTextColor="#9CA3AF"
+        />
 
-            {/* 문자 수 표시 */}
-            {value.length > 400 && (
-              <View className="absolute -top-6 right-2">
-                <View className="rounded bg-gray-800 px-2 py-1">
-                  <Text className="text-xs text-white">{value.length}/500</Text>
-                </View>
-              </View>
-            )}
-          </View>
-
-          {/* 전송 버튼 */}
-          <Pressable
-            onPress={handleSend}
-            disabled={!canSend}
-            accessibilityRole="button"
-            accessibilityLabel="메시지 전송"
-            style={[
-              {
-                height: 44,
-                width: 44,
-                borderRadius: 22,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              } as any,
-              Platform.OS === 'web' && {
-                cursor: canSend ? 'pointer' : 'not-allowed',
-              },
-              canSend
-                ? {
-                    backgroundColor: '#7C3AED',
-                    shadowOpacity: 0.3,
-                    shadowRadius: 4,
-                  }
-                : { backgroundColor: '#E5E7EB' },
-            ]}
-          >
-            <SendIcon color={canSend ? '#FFFFFF' : '#9CA3AF'} size={20} />
-          </Pressable>
-        </View>
-
-        {/* 로딩 상태 표시 */}
-        {isLoading && (
-          <View className="mt-2 flex-row items-center px-2">
-            <View className="mr-2 h-2 w-2 animate-pulse rounded-full bg-primary-500" />
-            <Text className="text-sm text-primary-500">
-              AI가 응답을 생성 중입니다...
-            </Text>
-          </View>
-        )}
+        <Pressable
+          onPress={handleSend}
+          disabled={!canSend}
+          style={[styles.sendButton, { backgroundColor: canSend ? '#7C3AED' : '#E5E7EB' }]}
+        >
+          <Text style={styles.buttonText}>→</Text>
+        </Pressable>
       </View>
-    </KeyboardAvoidingView>
+
+      {isLoading && (
+        <View style={styles.loadingContainer}>
+          <View style={styles.loadingDot} />
+          <Text style={styles.loadingText}>AI가 응답을 생성 중입니다...</Text>
+        </View>
+      )}
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    paddingBottom: 100, // 하단 탭바(88px + 여백)를 위한 충분한 여백
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  voiceButton: {
+    width: 44,
+    height: 44,
+    backgroundColor: '#7C3AED',
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sendButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  textInput: {
+    flex: 1,
+    height: 44,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    backgroundColor: '#F9FAFB',
+    fontSize: 16,
+    color: '#1F2937',
+  },
+  loadingContainer: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+  },
+  loadingDot: {
+    marginRight: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#7C3AED',
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#7C3AED',
+  },
+});

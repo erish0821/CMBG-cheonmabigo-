@@ -161,9 +161,9 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <AppHeader 
+      <AppHeader
         title="천마비고"
-        subtitle="대화하는 AI 가계부"
+        subtitle=""
         showAvatar={true}
       />
 

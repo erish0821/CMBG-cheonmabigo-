@@ -20,11 +20,11 @@ export function MessageBubble({
       },
       ...(message.status === 'error' && onRetry
         ? [
-            {
-              text: '다시 전송',
-              onPress: () => onRetry(message.id),
-            },
-          ]
+          {
+            text: '다시 전송',
+            onPress: () => onRetry(message.id),
+          },
+        ]
         : []),
       {
         text: '취소',
@@ -135,24 +135,23 @@ export function MessageBubble({
 
   return (
     <View className={`mb-4 ${isUser ? 'items-end' : 'items-start'}`}>
-      <View className={`flex-row items-end ${isUser ? 'flex-row-reverse' : ''}`}>
+      <View className={`flex-row items-start ${isUser ? 'flex-row-reverse' : ''}`}>
         {/* AI 메시지에만 소교 아바타 표시 */}
         {!isUser && (
-          <SogyoAvatar 
-            size={32} 
-            style={{ marginRight: 8, marginBottom: 4 }}
+          <SogyoAvatar
+            size={60}
+            style={{ marginRight: 12, marginTop: 8 }}
           />
         )}
-        
+
         <View className="flex-1 max-w-[75%]">
           <Pressable
             onLongPress={handleLongPress}
             className={`
               rounded-2xl px-4 py-3
-              ${
-                isUser
-                  ? 'rounded-br-md'
-                  : 'rounded-bl-md border border-gray-100 bg-white'
+              ${isUser
+                ? 'rounded-br-md'
+                : 'rounded-bl-md border border-gray-100 bg-white'
               }
             `}
             style={{

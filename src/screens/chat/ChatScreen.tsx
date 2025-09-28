@@ -78,18 +78,27 @@ export function ChatScreen() {
       />
 
       {/* 헤더 */}
-      <View style={{ backgroundColor: '#7C3AED' }} className="px-4 py-3 shadow-md">
+      <View style={{
+        backgroundColor: '#7C3AED',
+        paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 16 : 16,
+        paddingBottom: 20
+      }} className="px-6 shadow-md">
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center">
-            <SogyoAvatar 
-              size={40} 
-              showBorder={true} 
+            <SogyoAvatar
+              size={48}
+              showBorder={true}
               borderColor="#FFFFFF"
-              style={{ marginRight: 12 }}
+              style={{ marginRight: 16 }}
             />
             <View>
-              <Text className="text-lg font-bold text-white">소교</Text>
-              <Text className="text-sm text-white/80">
+              <View className="flex-row items-center">
+                <Text style={{ fontSize: 24, fontWeight: 'bold', color: 'white' }}>소교</Text>
+                <Text style={{ fontSize: 16, marginLeft: 8, color: 'white', opacity: 0.8 }}>
+                  대화하는 AI 가계부
+                </Text>
+              </View>
+              <Text className="text-sm text-white/80 mt-1">
                 {isTyping ? '생각하는 중...' : '천마비고 AI 재정 코치'}
               </Text>
             </View>

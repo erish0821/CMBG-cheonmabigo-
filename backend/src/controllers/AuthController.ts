@@ -45,7 +45,7 @@ export class AuthController {
       const accessToken = jwt.sign(
         { userId: user.id, email: user.email },
         process.env.JWT_SECRET!,
-        { expiresIn: '15m' }
+        { expiresIn: '2h' }
       );
 
       const refreshToken = jwt.sign(
@@ -143,7 +143,7 @@ export class AuthController {
       const accessToken = jwt.sign(
         { userId: user.id, email: user.email },
         process.env.JWT_SECRET!,
-        { expiresIn: '15m' }
+        { expiresIn: '2h' }
       );
 
       const refreshToken = jwt.sign(
@@ -239,7 +239,7 @@ export class AuthController {
       const newAccessToken = jwt.sign(
         { userId: user.id, email: user.email },
         process.env.JWT_SECRET!,
-        { expiresIn: '15m' }
+        { expiresIn: '2h' }
       );
 
       res.json({

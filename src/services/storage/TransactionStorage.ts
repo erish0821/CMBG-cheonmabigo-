@@ -38,6 +38,27 @@ function mapCategoryToBackend(frontendCategory: CategoryType): string {
 }
 
 /**
+ * 백엔드 카테고리를 프론트엔드 카테고리로 변환
+ */
+function mapCategoryFromBackend(backendCategory: string): CategoryType {
+  const categoryMap: Record<string, CategoryType> = {
+    'FOOD_DINING': CategoryType.FOOD,
+    'TRANSPORTATION': CategoryType.TRANSPORT,
+    'ENTERTAINMENT': CategoryType.ENTERTAINMENT,
+    'SHOPPING': CategoryType.SHOPPING,
+    'HEALTHCARE': CategoryType.HEALTHCARE,
+    'EDUCATION': CategoryType.EDUCATION,
+    'UTILITY': CategoryType.UTILITIES,
+    'UTILITIES': CategoryType.UTILITIES,
+    'HOUSING': CategoryType.HOUSING,
+    'INCOME': CategoryType.INCOME,
+    'OTHER': CategoryType.OTHER
+  };
+
+  return categoryMap[backendCategory] || CategoryType.OTHER;
+}
+
+/**
  * 프론트엔드 결제수단을 백엔드 결제수단으로 변환
  */
 function mapPaymentMethodToBackend(frontendPaymentMethod: string): string {
@@ -187,7 +208,7 @@ export class TransactionStorage {
           id: backendTransaction.id.toString(),
           amount: backendTransaction.amount,
           description: backendTransaction.description,
-          category: backendTransaction.category,
+          category: mapCategoryFromBackend(backendTransaction.category),
           subcategory: backendTransaction.subcategory,
           isIncome: backendTransaction.is_income,
           paymentMethod: backendTransaction.payment_method,

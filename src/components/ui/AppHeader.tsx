@@ -10,7 +10,7 @@ export interface AppHeaderProps {
   textColor?: string;
 }
 
-export function AppHeader({ 
+export function AppHeader({
   title = "천마비고",
   subtitle = "AI와 함께하는 똑똑한 가계부",
   showAvatar = true,
@@ -23,31 +23,37 @@ export function AppHeader({
         barStyle={backgroundColor === "#FFFFFF" ? "dark-content" : "light-content"}
         backgroundColor={backgroundColor}
       />
-      <View 
-        style={{ 
+      <View
+        style={{
           backgroundColor,
-          paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0,
+          paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 16 : 16,
+          paddingBottom: 20,
         }}
-        className="px-6 py-4 border-b border-gray-100"
+        className="px-6 border-b border-gray-100"
       >
         <View className="flex-row items-center justify-center">
           {showAvatar && (
-            <SogyoAvatar 
-              size={36} 
-              style={{ marginRight: 12 }}
+            <SogyoAvatar
+              size={48}
+              style={{ marginRight: 16 }}
             />
           )}
-          <View className="items-center">
-            <Text 
-              style={{ color: textColor }}
-              className="text-xl font-bold"
-            >
-              {title}
-            </Text>
+          <View className="items-start">
+            <View className="flex-row items-center">
+              <Text
+                style={{ color: textColor, fontSize: 24, fontWeight: 'bold' }}
+              >
+                {title}
+              </Text>
+              <Text
+                style={{ color: textColor, fontSize: 16, marginLeft: 8, opacity: 0.8 }}
+              >
+                대화하는 AI 가계부
+              </Text>
+            </View>
             {subtitle && (
-              <Text 
-                style={{ color: textColor }}
-                className="text-sm opacity-70 mt-1"
+              <Text
+                style={{ color: textColor, fontSize: 14, opacity: 0.7, marginTop: 4 }}
               >
                 {subtitle}
               </Text>

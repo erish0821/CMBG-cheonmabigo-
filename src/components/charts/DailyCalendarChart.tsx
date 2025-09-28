@@ -128,14 +128,26 @@ export function DailyCalendarChart({ data, selectedDate, onDatePress }: DailyCal
           {hasData && isCurrentMonth && (
             <View className="w-full">
               {dayData.income > 0 && (
-                <BodyText className="text-[10px] text-green-700 font-medium text-center leading-tight">
+                <Text style={{
+                  fontSize: 10,
+                  color: '#15803d',
+                  fontWeight: '500',
+                  textAlign: 'center',
+                  lineHeight: 12
+                }}>
                   +{formatAmount(dayData.income)}
-                </BodyText>
+                </Text>
               )}
               {dayData.expense > 0 && (
-                <BodyText className="text-[10px] text-red-700 font-medium text-center leading-tight">
+                <Text style={{
+                  fontSize: 10,
+                  color: '#b91c1c',
+                  fontWeight: '500',
+                  textAlign: 'center',
+                  lineHeight: 12
+                }}>
                   -{formatAmount(dayData.expense)}
-                </BodyText>
+                </Text>
               )}
             </View>
           )}

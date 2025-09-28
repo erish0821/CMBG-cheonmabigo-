@@ -41,7 +41,7 @@ export function MessageList({
   });
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
       <FlatList
         ref={flatListRef}
         data={messages}

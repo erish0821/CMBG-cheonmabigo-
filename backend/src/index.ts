@@ -29,7 +29,16 @@ app.use(cors({
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15분
   max: 100, // 100 requests per 15 minutes
-  message: '너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해주세요.'
+  message: {
+    success: false,
+    error: {
+      code: 'TOO_MANY_REQUESTS',
+      message: '너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해주세요.'
+    },
+    timestamp: new Date().toISOString()
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 app.use('/api', limiter);
 
@@ -177,8 +186,13 @@ app.use('/api/transactions', transactionRoutes);
 // 404 에러 핸들러
 app.use((req, res) => {
   res.status(404).json({
-    error: 'API 엔드포인트를 찾을 수 없습니다.',
-    path: req.originalUrl
+    success: false,
+    error: {
+      code: 'NOT_FOUND',
+      message: 'API 엔드포인트를 찾을 수 없습니다.'
+    },
+    path: req.originalUrl,
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -187,9 +201,14 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   console.error('서버 에러:', err);
 
   res.status(err.status || 500).json({
-    error: process.env.NODE_ENV === 'production'
-      ? '내부 서버 오류가 발생했습니다.'
-      : err.message,
+    success: false,
+    error: {
+      code: err.code || 'INTERNAL_SERVER_ERROR',
+      message: process.env.NODE_ENV === 'production'
+        ? '내부 서버 오류가 발생했습니다.'
+        : err.message
+    },
+    timestamp: new Date().toISOString(),
     ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
   });
 });
